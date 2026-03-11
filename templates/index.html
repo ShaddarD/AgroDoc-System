@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>АгроДок — Система формирования документов</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: { extend: { colors: { primary: { DEFAULT: '#1a5f7a', dark: '#0e445a', light: '#e8f4f8' } } } }
+        }
+    </script>
+</head>
+<body class="min-h-screen bg-gray-100 p-6">
+<div class="w-full max-w-5xl mx-auto">
+
+    <!-- ШАПКА -->
+    <div class="bg-white rounded shadow mb-4 p-4 flex justify-between items-center">
+        <div>
+            <div class="text-xl font-bold text-primary">АгроДок</div>
+            <div class="text-sm text-gray-500">Система формирования сопроводительных документов</div>
+        </div>
+        <div class="flex items-center gap-3">
+            <span class="text-sm text-gray-600">Пользователь</span>
+            <div class="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center font-bold">А</div>
+        </div>
+    </div>
+
+    <!-- ТАБЫ -->
+    <div class="flex gap-2 mb-4">
+        <button class="tab-btn px-5 py-2 rounded font-medium bg-primary text-white" onclick="showTab('new')">Новая заявка</button>
+        <button class="tab-btn px-5 py-2 rounded font-medium bg-white text-gray-600 shadow hover:bg-gray-50" onclick="showTab('list')">Все заявки</button>
+        <button class="tab-btn px-5 py-2 rounded font-medium bg-white text-gray-600 shadow hover:bg-gray-50" onclick="showTab('notices')">Извещения</button>
+    </div>
+
+    <!-- ===== НОВАЯ ЗАЯВКА ===== -->
+    <div id="tab-new">
+        <div class="flex flex-col gap-4 w-full">
+
+            <!-- ФОРМА -->
+            <div class="bg-white rounded shadow p-6">
+                <h2 class="text-lg font-bold text-primary mb-4 pb-2 border-b">Данные заявки</h2>
+
+                <h3 class="font-semibold text-gray-700 mt-4 mb-2">Заявитель</h3>
+                <div class="mb-3">
+                    <label class="block text-sm text-gray-600 mb-1" for="zayavitel">Организация-заявитель</label>
+                    <select id="zayavitel" onchange="updateZayavitelData()"
+                        class="border border-gray-300 p-2 rounded w-full text-sm focus:outline-none focus:border-primary">
+                        <option value="bsg">ООО «БСГ»</option>
+                        <option value="agro">ООО «АГРОИМПЭКС»</option>
+                        <option value="new">+ Добавить новую...</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-3 mb-3">
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1" for="inn">ИНН</label>
+                        <input type="text" id="inn" value="2315992271" readonly
+                            class="border border-gray-300 p-2 rounded w-full text-sm bg-gray-50 cursor-not-allowed">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1" for="kpp">КПП</label>
+                        <input type="text" id="kpp" value="231501001" readonly
+                            class="border border-gray-300 p-2 rounded w-full text-sm bg-gray-50 cursor-not-allowed">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3 mb-3">
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1" for="po_porucheniyu">По поручению</label>
+                        <input type="text" id="po_porucheniyu" value="ООО «АГРОИМПЭКС»"
+                            class="border border-gray-300 p-2 rounded w-full text-sm focus:outline-none focus:border-primary">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1" for="doverennost">Доверенность №</label>
+                        <input type="text" id="doverennost" placeholder="Номер"
+                            class="border border-gray-300 p-2 rounded w-full text-sm focus:outline-none focus:border-primary">
+                    </div>
+                </div>
+
+                <h3 class="font-semibold text-gray-700 mt-4 mb-2">Экспортер (Отправитель)</h3>
+                <div class="mb-3">
+                    <label class="block text-sm text-gray-600 mb-1" for="exp_rus">Наименование (рус)</label>
+                    <input type="text" id="exp_rus" placeholder="ООО «Название»" oninput="updatePreview()"
+                        class="border border-gray-300 p-2 rounded w-full text-sm focus:outline-none focus:border-primary">
+                </div>
+                <div class="mb-3">
+                    <label class="block text-sm text-gray-600 mb-1" for="exp_eng">Наименование (eng)</label>
+                    <input type="text" id="exp_eng" placeholder="LLC «Name»" oninput="updatePreview()"
+                        class="border border-gray-300 p-2 rounded w-full text-sm focus:outline-none focus:border-primary">
+                </div>
+                <div class="mb-3">
+                    <label class="block text-sm text-gray-600 mb-1" for="exp_address">Адрес</label>
+                    <textarea id="exp_address" rows="2" placeholder="Юридический адрес" oninput="updatePreview()"
+                        class="border border-gray-300 p-2 rounded w-full text-sm focus:outline-none focus:border-primary"></textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-3 mb-3">
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1" for="exp_inn">ИНН</label>
+                        <input type="text" id="exp_inn" placeholder="ИНН" oninput="updatePreview()"
+                            class="border border-gray-300 p-2 rounded w-full text-sm focus:outline-none focus:border-primary">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1" for="exp_kpp">КПП</label>
+                        <input type="text" id="exp_kpp" placeholder="КПП" oninput="updatePreview()"
+                            class="border border-gray-300 p-2 rounded w-full text-sm focus:outline-none focus:border-primary">
+                    </div>
+                </div>
+
+                <h3 class="font-semibold text-gray-700 mt-4 mb-2">Импортер (Получатель)</h3>
+                <div class="mb-3">
+                    <label class="block text-sm text-gray-600 mb-1" for="imp_name">Наименование (eng)</label>
+                    <input type="text" id="imp_name" placeholder="Importer name" oninput="updatePreview()"
+                        class="border border-gray-300 p-2 rounded w-full text-sm focus:outline-none focus:border-primary">
+                </div>
+                <div class="mb-3">
+                    <label class="block text-sm text-gray-600 mb-1" for="imp_address">Адрес (eng)</label>
+                    <textarea id="imp_address" rows="2" placeholder="Importer address" oninput="updatePreview()"
+                        class="border border-gray-300 p-2 rounded w-full text-sm focus:outline-none focus:border-primary"></textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-3 mb-3">
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1" for="imp_country">Страна</label>
+                        <input type="text" id="imp_country" placeholder="Country" oninput="updatePreview()"
+                            class="border border-gray-300 p-2 rounded w-full text-sm focus:outline-none focus:border-primary">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1" for="imp_city">Город назначения</label>
+                        <input type="text" id="imp_city" placeholder="City" oninput="updatePreview()"
+                            class="border border-gray-300 p-2 rounded w-full text-sm focus:outline-none focus:border-primary">
+                    </div>
+                </div>
+
+                <h3 class="font-semibold text-gray-700 mt-4 mb-2">Продукция и отгрузка</h3>
+                <div class="grid grid-cols-2 gap-3 mb-3">
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1" for="product_rus">Продукт (рус)</label>
+                        <input type="text" id="product_rus" placeholder="Пшеница продовольственная" oninput="updatePreview()"
+                            class="border border-gray-300 p-2 rounded w-full text-sm focus:outline-none focus:border-primary">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1" for="product_eng">Продукт (eng)</label>
+                        <input type="text" id="product_eng" placeholder="Wheat food" oninput="updatePreview()"
+                            class="border border-gray-300 p-2 rounded w-full text-sm focus:outline-none focus:border-primary">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="block text-sm text-gray-600 mb-1" for="botanic_name">Ботаническое название</label>
+                    <input type="text" id="botanic_name" placeholder="Triticum aestivum L." oninput="updatePreview()"
+                        class="border border-gray-300 p-2 rounded w-full text-sm focus:outline-none focus:border-primary">
+                </div>
+                <div class="grid grid-cols-2 gap-3 mb-3">
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1" for="weight_tons">Вес, тонн</label>
+                        <input type="number" id="weight_tons" placeholder="0.000" step="0.001" oninput="calculateWeight()"
+                            class="border border-gray-300 p-2 rounded w-full text-sm focus:outline-none focus:border-primary">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1" for="weight_mt">Вес, MT</label>
+                        <input type="number" id="weight_mt" placeholder="0.00" step="0.01" oninput="calculateWeightReverse()"
+                            class="border border-gray-300 p-2 rounded w-full text-sm focus:outline-none focus:border-primary">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3 mb-3">
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1" for="packing">Упаковка</label>
+                        <input type="text" id="packing" placeholder="Мешки 50 кг" oninput="updatePreview()"
+                            class="border border-gray-300 p-2 rounded w-full text-sm focus:outline-none focus:border-primary">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1" for="places">Количество мест</label>
+                        <input type="text" id="places" placeholder="1000 мест" oninput="updatePreview()"
+                            class="border border-gray-300 p-2 rounded w-full text-sm focus:outline-none focus:border-primary">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="block text-sm text-gray-600 mb-1" for="containers">Номера контейнеров</label>
+                    <textarea id="containers" rows="2" placeholder="MSCU1234567, MSCU7654321" oninput="updatePreview()"
+                        class="border border-gray-300 p-2 rounded w-full text-sm focus:outline-none focus:border-primary"></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="block text-sm text-gray-600 mb-1" for="inspection_place">Место отбора проб / инспекции</label>
+                    <textarea id="inspection_place" rows="2" placeholder="г. Краснодар, ул. Примерная, д. 1" oninput="updatePreview()"
+                        class="border border-gray-300 p-2 rounded w-full text-sm focus:outline-none focus:border-primary"></textarea>
+                </div>
+
+                <h3 class="font-semibold text-gray-700 mt-4 mb-2">Необходимые документы</h3>
+                <div class="flex flex-wrap gap-4 mb-3">
+                    <label class="flex items-center gap-2 text-sm cursor-pointer">
+                        <input type="checkbox" id="doc_cokz" checked class="w-4 h-4 accent-primary"> Заявка ЦОКЗ
+                    </label>
+                    <label class="flex items-center gap-2 text-sm cursor-pointer">
+                        <input type="checkbox" id="doc_fito" checked class="w-4 h-4 accent-primary"> Фитосертификат
+                    </label>
+                    <label class="flex items-center gap-2 text-sm cursor-pointer">
+                        <input type="checkbox" id="doc_health" class="w-4 h-4 accent-primary"> Ветсертификат
+                    </label>
+                    <label class="flex items-center gap-2 text-sm cursor-pointer">
+                        <input type="checkbox" id="doc_rad" class="w-4 h-4 accent-primary"> Рад. контроль
+                    </label>
+                </div>
+                <div id="permit_block" style="display:none;" class="mb-3">
+                    <label class="block text-sm text-gray-600 mb-1" for="permit">Номер разрешения (Permit)</label>
+                    <input type="text" id="permit" placeholder="Номер фитосанитарного разрешения"
+                        class="border border-gray-300 p-2 rounded w-full text-sm focus:outline-none focus:border-primary">
+                </div>
+
+                <div class="flex gap-3 mt-5">
+                    <button onclick="saveApplication()"
+                        class="flex-1 bg-primary text-white py-2 px-4 rounded font-medium hover:bg-primary-dark transition-colors">
+                        💾 Сохранить заявку
+                    </button>
+                    <button onclick="generateDocuments()"
+                        class="flex-1 border border-primary text-primary py-2 px-4 rounded font-medium hover:bg-primary-light transition-colors">
+                        📄 Сформировать документы
+                    </button>
+                </div>
+            </div>
+
+            <!-- ПРЕВЬЮ -->
+            <div class="bg-white rounded shadow p-6">
+                <h2 class="text-lg font-bold text-primary mb-4 pb-2 border-b">Документы к формированию</h2>
+
+                <div class="flex flex-col gap-3 mb-4">
+                    <div class="bg-gray-50 rounded p-3 flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-blue-100 rounded flex items-center justify-center text-xl">📋</div>
+                            <div>
+                                <div class="font-medium text-sm text-gray-800">Заявка в ЦОК АПК</div>
+                                <div class="text-xs text-gray-500">04_качество_ЦОКЗ.docx</div>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="previewDoc('cokz')" class="border border-gray-300 text-gray-600 px-3 py-1 rounded text-sm hover:bg-gray-100">👁️</button>
+                            <button onclick="downloadDoc('cokz')" class="bg-primary text-white px-3 py-1 rounded text-sm hover:bg-primary-dark">⬇</button>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 rounded p-3 flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-green-100 rounded flex items-center justify-center text-xl">🌿</div>
+                            <div>
+                                <div class="font-medium text-sm text-gray-800">Заявление на фитосертификат (лист 1)</div>
+                                <div class="text-xs text-gray-500">ЗАЯВКИ_ФИТО_лист1.xlsx</div>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="previewDoc('fito1')" class="border border-gray-300 text-gray-600 px-3 py-1 rounded text-sm hover:bg-gray-100">👁️</button>
+                            <button onclick="downloadDoc('fito1')" class="bg-primary text-white px-3 py-1 rounded text-sm hover:bg-primary-dark">⬇</button>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 rounded p-3 flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-purple-100 rounded flex items-center justify-center text-xl">🔬</div>
+                            <div>
+                                <div class="font-medium text-sm text-gray-800">Заявление на отбор проб (лист 2)</div>
+                                <div class="text-xs text-gray-500">ЗАЯВКИ_ФИТО_лист2.xlsx</div>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="previewDoc('fito2')" class="border border-gray-300 text-gray-600 px-3 py-1 rounded text-sm hover:bg-gray-100">👁️</button>
+                            <button onclick="downloadDoc('fito2')" class="bg-primary text-white px-3 py-1 rounded text-sm hover:bg-primary-dark">⬇</button>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 rounded p-3 flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-orange-100 rounded flex items-center justify-center text-xl">📄</div>
+                            <div>
+                                <div class="font-medium text-sm text-gray-800">Акт досмотра</div>
+                                <div class="text-xs text-gray-500">Акт_ДОСМОТРА.xlsx</div>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="previewDoc('act')" class="border border-gray-300 text-gray-600 px-3 py-1 rounded text-sm hover:bg-gray-100">👁️</button>
+                            <button onclick="downloadDoc('act')" class="bg-primary text-white px-3 py-1 rounded text-sm hover:bg-primary-dark">⬇</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex gap-3 mb-4">
+                    <button onclick="downloadAll()" class="flex-1 bg-primary text-white py-2 rounded text-sm font-medium hover:bg-primary-dark">📦 Скачать все</button>
+                    <button onclick="printAll()" class="flex-1 border border-primary text-primary py-2 rounded text-sm font-medium hover:bg-primary-light">🖨️ Печать</button>
+                </div>
+
+                <div class="bg-gray-50 rounded p-4">
+                    <h3 class="font-semibold text-gray-700 mb-3">Данные заявки</h3>
+                    <div class="grid grid-cols-2 gap-2 text-sm" id="previewData">
+                        <div class="text-gray-400 col-span-2">Заполните форму выше...</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div><!-- /#tab-new -->
+
+    <!-- ===== ВСЕ ЗАЯВКИ ===== -->
+    <div id="tab-list" style="display:none;">
+        <div class="bg-white rounded shadow p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-bold text-primary">Все заявки</h2>
+                <div class="flex gap-2">
+                    <input type="text" placeholder="Поиск по номеру, продукту..."
+                        class="border border-gray-300 p-2 rounded text-sm w-72 focus:outline-none focus:border-primary">
+                    <button class="bg-primary text-white px-4 py-2 rounded text-sm hover:bg-primary-dark">Найти</button>
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full border-collapse border border-gray-300">
+                    <thead>
+                        <tr class="bg-gray-200">
+                            <th class="border border-gray-300 p-2 text-left text-sm font-semibold">№ заявки</th>
+                            <th class="border border-gray-300 p-2 text-left text-sm font-semibold">Дата</th>
+                            <th class="border border-gray-300 p-2 text-left text-sm font-semibold">Продукт</th>
+                            <th class="border border-gray-300 p-2 text-left text-sm font-semibold">Импортер</th>
+                            <th class="border border-gray-300 p-2 text-left text-sm font-semibold">Вес, т</th>
+                            <th class="border border-gray-300 p-2 text-left text-sm font-semibold">Статус</th>
+                            <th class="border border-gray-300 p-2 text-left text-sm font-semibold">Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td colspan="7" class="border border-gray-300 p-6 text-center text-gray-400 text-sm">
+                                Заявки будут загружены из базы данных
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="text-center mt-4">
+                <button class="border border-primary text-primary px-6 py-2 rounded text-sm hover:bg-primary-light">Загрузить ещё</button>
+            </div>
+        </div>
+    </div><!-- /#tab-list -->
+
+    <!-- ===== ИЗВЕЩЕНИЯ ===== -->
+    <div id="tab-notices" style="display:none;">
+
+        <!-- Добавить поступление -->
+        <div class="mb-4 p-4 bg-white rounded shadow">
+            <h2 class="font-semibold mb-3">Добавить поступление</h2>
+            <div class="flex flex-wrap gap-2 items-end">
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">Компания</label>
+                    <input type="text" id="n_company" placeholder="Компания"
+                        class="border border-gray-300 p-2 rounded text-sm w-32 focus:outline-none focus:border-primary">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">Культура</label>
+                    <input type="text" id="n_culture" placeholder="Культура"
+                        class="border border-gray-300 p-2 rounded text-sm w-32 focus:outline-none focus:border-primary">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">Дата поступления</label>
+                    <input type="date" id="n_date"
+                        class="border border-gray-300 p-2 rounded text-sm focus:outline-none focus:border-primary">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">Тонны</label>
+                    <input type="number" id="n_quantity" placeholder="0" min="0.001" step="0.001"
+                        class="border border-gray-300 p-2 rounded text-sm w-24 focus:outline-none focus:border-primary">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">Примечание</label>
+                    <input type="text" id="n_note" placeholder="Примечание"
+                        class="border border-gray-300 p-2 rounded text-sm w-44 focus:outline-none focus:border-primary">
+                </div>
+                <button onclick="addBatch()"
+                    class="bg-green-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-green-700">
+                    + Добавить
+                </button>
+            </div>
+        </div>
+
+        <!-- Списание по FIFO -->
+        <div class="mb-4 p-4 bg-white rounded shadow">
+            <h2 class="font-semibold mb-3">
+                Списание партии
+                <span class="text-xs font-normal text-gray-500 ml-1">(метод FIFO — списание с самых старых партий)</span>
+            </h2>
+            <div class="flex flex-wrap gap-2 items-end">
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">Компания</label>
+                    <input type="text" id="w_company" placeholder="Компания"
+                        class="border border-gray-300 p-2 rounded text-sm w-32 focus:outline-none focus:border-primary">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">Культура</label>
+                    <input type="text" id="w_culture" placeholder="Культура"
+                        class="border border-gray-300 p-2 rounded text-sm w-32 focus:outline-none focus:border-primary">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">Тонны к списанию</label>
+                    <input type="number" id="w_quantity" placeholder="0" min="0.001" step="0.001"
+                        class="border border-gray-300 p-2 rounded text-sm w-36 focus:outline-none focus:border-primary">
+                </div>
+                <button onclick="writeOffBatch()"
+                    class="bg-red-500 text-white px-4 py-2 rounded text-sm font-medium hover:bg-red-600">
+                    Списать
+                </button>
+            </div>
+        </div>
+
+        <!-- Фильтры -->
+        <div class="mb-4 p-4 bg-white rounded shadow">
+            <h2 class="font-semibold mb-3">Фильтры</h2>
+            <div class="flex flex-wrap gap-4">
+                <div class="dropdown-wrapper relative">
+                    <button onclick="toggleDropdown('company-dd')"
+                        class="border border-gray-300 p-2 rounded text-sm min-w-48 flex justify-between items-center gap-3 hover:border-primary bg-white">
+                        <span id="company-filter-label" class="text-gray-600">Все компании</span>
+                        <span class="text-gray-400 text-xs">▾</span>
+                    </button>
+                    <div id="company-dd" class="dropdown-panel hidden absolute z-10 bg-white border border-gray-300 rounded shadow-lg mt-1 min-w-48 max-h-48 overflow-y-auto">
+                        <div id="company-options"></div>
+                    </div>
+                </div>
+                <div class="dropdown-wrapper relative">
+                    <button onclick="toggleDropdown('culture-dd')"
+                        class="border border-gray-300 p-2 rounded text-sm min-w-48 flex justify-between items-center gap-3 hover:border-primary bg-white">
+                        <span id="culture-filter-label" class="text-gray-600">Все культуры</span>
+                        <span class="text-gray-400 text-xs">▾</span>
+                    </button>
+                    <div id="culture-dd" class="dropdown-panel hidden absolute z-10 bg-white border border-gray-300 rounded shadow-lg mt-1 min-w-48 max-h-48 overflow-y-auto">
+                        <div id="culture-options"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Таблица партий -->
+        <div class="overflow-x-auto bg-white rounded shadow p-4">
+            <table class="w-full border-collapse border border-gray-300">
+                <thead>
+                    <tr class="bg-gray-200">
+                        <th class="border border-gray-300 p-2 text-left text-sm font-semibold cursor-pointer hover:bg-gray-300 select-none"
+                            onclick="requestBatchSort('company')">
+                            Компания <span id="sort-company" class="text-xs text-gray-400">↕</span>
+                        </th>
+                        <th class="border border-gray-300 p-2 text-left text-sm font-semibold cursor-pointer hover:bg-gray-300 select-none"
+                            onclick="requestBatchSort('culture')">
+                            Культура <span id="sort-culture" class="text-xs text-gray-400">↕</span>
+                        </th>
+                        <th class="border border-gray-300 p-2 text-left text-sm font-semibold cursor-pointer hover:bg-gray-300 select-none"
+                            onclick="requestBatchSort('date')">
+                            Дата поступления <span id="sort-date" class="text-xs text-primary">↑</span>
+                        </th>
+                        <th class="border border-gray-300 p-2 text-left text-sm font-semibold cursor-pointer hover:bg-gray-300 select-none"
+                            onclick="requestBatchSort('quantity')">
+                            Тонны <span id="sort-quantity" class="text-xs text-gray-400">↕</span>
+                        </th>
+                        <th class="border border-gray-300 p-2 text-left text-sm font-semibold">Примечание</th>
+                    </tr>
+                </thead>
+                <tbody id="batches-tbody"></tbody>
+            </table>
+            <div class="mt-3 flex gap-4 text-xs text-gray-500">
+                <span class="flex items-center gap-1"><span class="inline-block w-3 h-3 bg-gray-100 border border-gray-300 rounded"></span> более 1 года</span>
+                <span class="flex items-center gap-1"><span class="inline-block w-3 h-3 bg-gray-50 border border-gray-300 rounded"></span> 6–12 месяцев</span>
+                <span class="flex items-center gap-1"><span class="inline-block w-3 h-3 bg-white border border-gray-300 rounded"></span> менее 6 месяцев</span>
+            </div>
+        </div>
+
+    </div><!-- /#tab-notices -->
+
+</div><!-- /.container -->
+
+<script>
+// =============================================
+// ПЕРЕКЛЮЧЕНИЕ ТАБОВ
+// =============================================
+const TAB_NAMES = ['new', 'list', 'notices'];
+
+function showTab(name) {
+    TAB_NAMES.forEach(t => {
+        document.getElementById('tab-' + t).style.display = t === name ? '' : 'none';
+    });
+    document.querySelectorAll('.tab-btn').forEach((btn, i) => {
+        const active = TAB_NAMES[i] === name;
+        btn.className = active
+            ? 'tab-btn px-5 py-2 rounded font-medium bg-primary text-white'
+            : 'tab-btn px-5 py-2 rounded font-medium bg-white text-gray-600 shadow hover:bg-gray-50';
+    });
+}
+
+// =============================================
+// ЗАЯВКИ — ФОРМА
+// =============================================
+function updateZayavitelData() {
+    const select = document.getElementById('zayavitel');
+    const inn = document.getElementById('inn');
+    const kpp = document.getElementById('kpp');
+    const po = document.getElementById('po_porucheniyu');
+    if (select.value === 'bsg') {
+        inn.value = '2315992271'; kpp.value = '231501001'; po.value = 'ООО «АГРОИМПЭКС»';
+    } else if (select.value === 'agro') {
+        inn.value = '7816085379'; kpp.value = '472501001'; po.value = '';
+    } else if (select.value === 'new') {
+        alert('Функция добавления нового заявителя будет доступна в следующей версии');
+        select.value = 'bsg';
+    }
+    updatePreview();
+}
+
+function calculateWeight() {
+    const tons = parseFloat(document.getElementById('weight_tons').value) || 0;
+    document.getElementById('weight_mt').value = (tons / 5).toFixed(2);
+    updatePreview();
+}
+
+function calculateWeightReverse() {
+    const mt = parseFloat(document.getElementById('weight_mt').value) || 0;
+    document.getElementById('weight_tons').value = (mt * 5).toFixed(1);
+    updatePreview();
+}
+
+function saveApplication() {
+    alert('✅ Заявка сохранена!\n\n(В реальной системе — запись в БД через API)');
+}
+
+function generateDocuments() {
+    alert('📄 Документы сформированы!\n\n(В реальной системе — подстановка данных в шаблоны Word/Excel)');
+}
+
+function previewDoc(type) {
+    const n = { cokz: 'Заявка в ЦОК АПК', fito1: 'Фитосертификат лист 1', fito2: 'Отбор проб лист 2', act: 'Акт досмотра' };
+    alert('👁️ Просмотр: ' + n[type]);
+}
+
+function downloadDoc(type) {
+    const n = { cokz: '04_качество_ЦОКЗ.docx', fito1: 'ЗАЯВКИ_ФИТО_лист1.xlsx', fito2: 'ЗАЯВКИ_ФИТО_лист2.xlsx', act: 'Акт_ДОСМОТРА.xlsx' };
+    alert('📥 Скачивание: ' + n[type]);
+}
+
+function downloadAll() { alert('📦 Создание ZIP-архива...'); }
+function printAll() { alert('🖨️ Подготовка к печати...'); }
+
+function updatePreview() {
+    const get = id => { const el = document.getElementById(id); return el ? el.value : ''; };
+    const zSel = document.getElementById('zayavitel');
+    const items = [
+        ['Заявитель', zSel ? zSel.options[zSel.selectedIndex].text : ''],
+        ['Продукт (рус)', get('product_rus')],
+        ['Продукт (eng)', get('product_eng')],
+        ['Вес, т', get('weight_tons')],
+        ['Вес, MT', get('weight_mt')],
+        ['Экспортер', get('exp_rus')],
+        ['Импортер', get('imp_name')],
+        ['Страна', get('imp_country')],
+        ['Место отбора', (get('inspection_place') || '').substring(0, 40)],
+    ];
+    const preview = document.getElementById('previewData');
+    if (!preview) return;
+    const filled = items.filter(([, v]) => v);
+    if (!filled.length) {
+        preview.innerHTML = '<div class="text-gray-400 col-span-2">Заполните форму выше...</div>';
+        return;
+    }
+    preview.innerHTML = filled.map(([k, v]) =>
+        `<div><span class="text-gray-500">${k}:</span> <span class="font-semibold text-primary">${esc(v)}</span></div>`
+    ).join('');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    updatePreview();
+    document.querySelectorAll('#tab-new input, #tab-new select, #tab-new textarea').forEach(el => {
+        el.addEventListener('change', updatePreview);
+        el.addEventListener('keyup', updatePreview);
+    });
+    const fito = document.getElementById('doc_fito');
+    const permitBlock = document.getElementById('permit_block');
+    if (fito && permitBlock) {
+        fito.addEventListener('change', () => {
+            permitBlock.style.display = fito.checked ? 'block' : 'none';
+        });
+    }
+    renderBatches();
+    refreshFilterOptions();
+});
+
+// =============================================
+// ИЗВЕЩЕНИЯ — УЧЁТ ПАРТИЙ (FIFO)
+// =============================================
+let batchData = [
+    { company: 'A', culture: 'Горох',    date: '2025-08-08', quantity: 300, note: 'Начальный приход' },
+    { company: 'A', culture: 'Горох',    date: '2026-03-02', quantity: 200, note: 'Поступление' },
+    { company: 'A', culture: 'Чечевица', date: '2025-01-01', quantity: 150, note: 'Начальный приход' },
+    { company: 'B', culture: 'Нут',      date: '2025-05-12', quantity: 100, note: '' },
+    { company: 'C', culture: 'Чечевица', date: '2026-01-20', quantity: 250, note: '' },
+];
+
+let batchSort = { key: 'date', dir: 'asc' };
+let filterCompanies = [];
+let filterCultures = [];
+
+function addBatch() {
+    const company  = document.getElementById('n_company').value.trim();
+    const culture  = document.getElementById('n_culture').value.trim();
+    const date     = document.getElementById('n_date').value;
+    const quantity = parseFloat(document.getElementById('n_quantity').value);
+    const note     = document.getElementById('n_note').value.trim();
+
+    if (!company || !culture || !date || !(quantity > 0)) {
+        alert('Заполните: Компания, Культура, Дата и Тонны > 0');
+        return;
+    }
+    batchData.push({ company, culture, date, quantity, note });
+    ['n_company','n_culture','n_date','n_quantity','n_note'].forEach(id => {
+        document.getElementById(id).value = '';
+    });
+    renderBatches();
+    refreshFilterOptions();
+}
+
+function writeOffBatch() {
+    const company  = document.getElementById('w_company').value.trim();
+    const culture  = document.getElementById('w_culture').value.trim();
+    let remaining  = parseFloat(document.getElementById('w_quantity').value);
+
+    if (!company || !culture || !(remaining > 0)) {
+        alert('Заполните: Компания, Культура и Тонны > 0');
+        return;
+    }
+    const total = batchData
+        .filter(p => p.company === company && p.culture === culture)
+        .reduce((s, p) => s + p.quantity, 0);
+
+    if (remaining > total) {
+        alert(`Недостаточно товара!\nДоступно: ${total} т (${company} / ${culture})`);
+        return;
+    }
+
+    // FIFO: списываем с самых старых партий
+    const sorted = batchData
+        .filter(p => p.company === company && p.culture === culture)
+        .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    let newData = [...batchData];
+    for (const batch of sorted) {
+        if (remaining <= 0) break;
+        if (remaining >= batch.quantity) {
+            remaining -= batch.quantity;
+            newData = newData.filter(p => p !== batch);
+        } else {
+            const idx = newData.findIndex(p => p === batch);
+            newData[idx] = { ...newData[idx], quantity: +(newData[idx].quantity - remaining).toFixed(3) };
+            remaining = 0;
+        }
+    }
+    batchData = newData;
+    ['w_company','w_culture','w_quantity'].forEach(id => {
+        document.getElementById(id).value = '';
+    });
+    filterCompanies = filterCompanies.filter(c => [...new Set(batchData.map(d => d.company))].includes(c));
+    filterCultures  = filterCultures.filter(c =>  [...new Set(batchData.map(d => d.culture))].includes(c));
+    renderBatches();
+    refreshFilterOptions();
+}
+
+function requestBatchSort(key) {
+    batchSort.dir = (batchSort.key === key && batchSort.dir === 'asc') ? 'desc' : 'asc';
+    batchSort.key = key;
+    renderBatches();
+}
+
+function sortIcon(key) {
+    if (batchSort.key !== key) return '<span class="text-gray-300">↕</span>';
+    return batchSort.dir === 'asc'
+        ? '<span class="text-primary-dark font-bold">↑</span>'
+        : '<span class="text-primary-dark font-bold">↓</span>';
+}
+
+function rowAge(date) {
+    const days = (Date.now() - new Date(date)) / 86400000;
+    if (days > 365) return 'bg-gray-100';
+    if (days > 180) return 'bg-gray-50';
+    return '';
+}
+
+function toggleDropdown(id) {
+    document.getElementById(id).classList.toggle('hidden');
+}
+
+document.addEventListener('click', e => {
+    if (!e.target.closest('.dropdown-wrapper')) {
+        document.querySelectorAll('.dropdown-panel').forEach(el => el.classList.add('hidden'));
+    }
+});
+
+function toggleFilter(type, value) {
+    if (type === 'company') {
+        filterCompanies = filterCompanies.includes(value)
+            ? filterCompanies.filter(c => c !== value)
+            : [...filterCompanies, value];
+        updateFilterLabel('company-filter-label', filterCompanies, 'Все компании');
+    } else {
+        filterCultures = filterCultures.includes(value)
+            ? filterCultures.filter(c => c !== value)
+            : [...filterCultures, value];
+        updateFilterLabel('culture-filter-label', filterCultures, 'Все культуры');
+    }
+    renderBatches();
+    refreshFilterOptions();
+}
+
+function renderCheckboxList(containerId, options, selected, type) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    el.innerHTML = options.length
+        ? options.map(opt => `
+            <label class="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer text-sm">
+                <input type="checkbox" ${selected.includes(opt) ? 'checked' : ''}
+                    onchange="toggleFilter('${type}','${esc(opt)}')"
+                    class="w-4 h-4 accent-primary">
+                ${esc(opt)}
+            </label>`).join('')
+        : '<div class="px-3 py-2 text-sm text-gray-400">Нет данных</div>';
+}
+
+function updateFilterLabel(id, selected, placeholder) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = selected.length ? selected.join(', ') : placeholder;
+}
+
+function refreshFilterOptions() {
+    const companies = [...new Set(batchData.map(d => d.company))].sort();
+    const cultures  = [...new Set(batchData.map(d => d.culture))].sort();
+    renderCheckboxList('company-options', companies, filterCompanies, 'company');
+    renderCheckboxList('culture-options', cultures,  filterCultures,  'culture');
+}
+
+function renderBatches() {
+    // Обновляем иконки сортировки в заголовках
+    ['company','culture','date','quantity'].forEach(k => {
+        const el = document.getElementById('sort-' + k);
+        if (el) el.innerHTML = sortIcon(k);
+    });
+
+    // Фильтрация
+    const filtered = batchData.filter(p =>
+        (filterCompanies.length === 0 || filterCompanies.includes(p.company)) &&
+        (filterCultures.length  === 0 || filterCultures.includes(p.culture))
+    );
+
+    // Сортировка
+    const { key, dir } = batchSort;
+    const d = dir === 'asc' ? 1 : -1;
+    const sorted = [...filtered].sort((a, b) => {
+        if (key === 'date')     return (new Date(a.date) - new Date(b.date)) * d;
+        if (key === 'quantity') return (a.quantity - b.quantity) * d;
+        return String(a[key]).localeCompare(String(b[key])) * d;
+    });
+
+    const tbody = document.getElementById('batches-tbody');
+    if (!tbody) return;
+
+    if (!sorted.length) {
+        tbody.innerHTML = '<tr><td colspan="5" class="border border-gray-300 p-5 text-center text-gray-400 text-sm">Нет записей</td></tr>';
+        return;
+    }
+    tbody.innerHTML = sorted.map(p => `
+        <tr class="${rowAge(p.date)}">
+            <td class="border border-gray-300 p-2 text-sm">${esc(p.company)}</td>
+            <td class="border border-gray-300 p-2 text-sm">${esc(p.culture)}</td>
+            <td class="border border-gray-300 p-2 text-sm">${p.date}</td>
+            <td class="border border-gray-300 p-2 text-sm font-medium">${p.quantity}</td>
+            <td class="border border-gray-300 p-2 text-sm text-gray-500">${esc(p.note)}</td>
+        </tr>`).join('');
+}
+
+function esc(s) {
+    return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
