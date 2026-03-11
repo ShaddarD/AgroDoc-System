@@ -13,4 +13,5 @@ urlpatterns = [
     path('logout/', views.LogoutView.as_view(), name='logout'),
     path('me/', views.CurrentUserView.as_view(), name='current-user'),
     path('register/', views.RegisterView.as_view(), name='register'),
+    path('inn-lookup/', views.InnLookupView.as_view(), name='inn-lookup'),
 ]

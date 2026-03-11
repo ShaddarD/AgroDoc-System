@@ -122,6 +122,10 @@ CORS_ALLOW_ALL_ORIGINS = True  # Для разработки
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# DaData API (для поиска компании по ИНН)
+# Получить токен: https://dadata.ru → Профиль → API-ключи
+DADATA_TOKEN = ''  # вставьте свой API-ключ
+
 # Login/Logout URLs
 LOGGING = {
     'version': 1,

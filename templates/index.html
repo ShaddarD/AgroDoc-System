@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>АгроДок — Система формирования документов</title>
+    <meta name="csrf-token" content="{{ csrf_token }}">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -20,11 +21,42 @@
             <div class="text-xl font-bold text-primary">АгроДок</div>
             <div class="text-sm text-gray-500">Система формирования сопроводительных документов</div>
         </div>
-        <div class="flex items-center gap-3">
-            <span class="text-sm text-gray-600">Пользователь</span>
-            <div class="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center font-bold">А</div>
+        <!-- USER MENU -->
+        <div class="relative" id="user-menu-wrapper">
+            <!-- Не авторизован -->
+            <button id="btn-login-open" onclick="openLoginModal()"
+                class="flex items-center gap-2 px-4 py-2 border border-primary text-primary rounded hover:bg-primary-light text-sm font-medium">
+                Войти
+            </button>
+            <!-- Авторизован -->
+            <div id="user-info" class="hidden flex items-center gap-3">
+                <button onclick="toggleUserDropdown()"
+                    class="flex items-center gap-2 cursor-pointer hover:opacity-80">
+                    <span class="text-sm text-gray-600" id="user-display-name"></span>
+                    <div id="user-avatar" class="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center font-bold text-sm"></div>
+                </button>
+                <div id="user-dropdown" class="hidden absolute right-0 top-12 bg-white border border-gray-200 rounded shadow-lg w-44 z-50">
+                    <div class="px-4 py-2 border-b border-gray-100">
+                        <div class="text-xs text-gray-500">Вы вошли как</div>
+                        <div class="text-sm font-semibold text-primary" id="user-dropdown-name"></div>
+                    </div>
+                    <button id="btn-users-menu" onclick="openUsersModal()" style="display:none;"
+                        class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                        👥 Пользователи
+                    </button>
+                    <a href="/admin/" target="_blank"
+                        class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                        ⚙️ Администрирование
+                    </a>
+                    <button onclick="doLogout()"
+                        class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">
+                        Выйти
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
+
 
     <!-- ТАБЫ -->
     <div class="flex gap-2 mb-4">
@@ -461,7 +493,514 @@
 
 </div><!-- /.container -->
 
+<!-- МОДАЛЬНОЕ ОКНО УПРАВЛЕНИЯ ПОЛЬЗОВАТЕЛЯМИ -->
+<div id="users-modal" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl p-6 w-[600px] max-w-full max-h-[90vh] flex flex-col">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-bold text-primary">Управление пользователями</h2>
+            <button onclick="closeUsersModal()" class="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+        </div>
+
+        <!-- Список пользователей -->
+        <div class="overflow-y-auto flex-1 mb-4">
+            <table class="w-full border-collapse border border-gray-200 text-sm">
+                <thead>
+                    <tr class="bg-gray-100">
+                        <th class="border border-gray-200 p-2 text-left">Логин</th>
+                        <th class="border border-gray-200 p-2 text-left">Email</th>
+                        <th class="border border-gray-200 p-2 text-left">Имя</th>
+                        <th class="border border-gray-200 p-2 text-center">Админ</th>
+                        <th class="border border-gray-200 p-2 text-center">Активен</th>
+                    </tr>
+                </thead>
+                <tbody id="users-tbody">
+                    <tr><td colspan="5" class="p-4 text-center text-gray-400">Загрузка...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Форма добавления пользователя -->
+        <div class="border-t border-gray-200 pt-4">
+            <h3 class="font-semibold text-gray-700 mb-3">Добавить пользователя</h3>
+            <div id="add-user-error" class="hidden mb-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded p-2"></div>
+            <div id="add-user-success" class="hidden mb-3 text-sm text-green-700 bg-green-50 border border-green-200 rounded p-2"></div>
+            <div class="grid grid-cols-2 gap-3 mb-3">
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">Логин *</label>
+                    <input type="text" id="new-username" placeholder="username"
+                        class="border border-gray-300 p-2 rounded w-full text-sm focus:outline-none focus:border-primary">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">Email</label>
+                    <input type="email" id="new-email" placeholder="email@example.com"
+                        class="border border-gray-300 p-2 rounded w-full text-sm focus:outline-none focus:border-primary">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">Имя</label>
+                    <input type="text" id="new-firstname" placeholder="Имя"
+                        class="border border-gray-300 p-2 rounded w-full text-sm focus:outline-none focus:border-primary">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">Фамилия</label>
+                    <input type="text" id="new-lastname" placeholder="Фамилия"
+                        class="border border-gray-300 p-2 rounded w-full text-sm focus:outline-none focus:border-primary">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">Пароль *</label>
+                    <input type="password" id="new-password" placeholder="Пароль"
+                        class="border border-gray-300 p-2 rounded w-full text-sm focus:outline-none focus:border-primary">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">Повтор пароля *</label>
+                    <input type="password" id="new-password2" placeholder="Повтор пароля"
+                        class="border border-gray-300 p-2 rounded w-full text-sm focus:outline-none focus:border-primary">
+                </div>
+            </div>
+            <button onclick="addUser()" id="add-user-btn"
+                class="bg-primary text-white px-5 py-2 rounded text-sm font-medium hover:bg-primary-dark transition-colors">
+                Добавить пользователя
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- МОДАЛЬНОЕ ОКНО ЛОГИНА / РЕГИСТРАЦИИ -->
+<div id="login-modal" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl w-[480px] max-w-full max-h-[95vh] overflow-y-auto">
+        <!-- Заголовок + закрытие -->
+        <div class="flex justify-between items-center px-6 pt-5 pb-3">
+            <h2 class="text-lg font-bold text-primary" id="modal-title">Вход в систему</h2>
+            <button onclick="closeLoginModal()" class="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+        </div>
+        <!-- Вкладки -->
+        <div class="flex border-b border-gray-200 mx-6">
+            <button id="tab-login-btn" onclick="switchAuthTab('login')"
+                class="px-4 py-2 text-sm font-medium border-b-2 border-primary text-primary">
+                Вход
+            </button>
+            <button id="tab-reg-btn" onclick="switchAuthTab('reg')"
+                class="px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+                Регистрация
+            </button>
+        </div>
+
+        <!-- === ФОРМА ВХОДА === -->
+        <div id="auth-login" class="px-6 py-4">
+            <div id="login-error" class="hidden mb-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded p-2"></div>
+            <div class="mb-3">
+                <label class="block text-sm text-gray-600 mb-1">Логин</label>
+                <input type="text" id="login-username" autocomplete="username"
+                    class="border border-gray-300 p-2 rounded w-full text-sm focus:outline-none focus:border-primary"
+                    placeholder="Имя пользователя" onkeydown="if(event.key==='Enter') doLogin()">
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm text-gray-600 mb-1">Пароль</label>
+                <input type="password" id="login-password" autocomplete="current-password"
+                    class="border border-gray-300 p-2 rounded w-full text-sm focus:outline-none focus:border-primary"
+                    placeholder="Пароль" onkeydown="if(event.key==='Enter') doLogin()">
+            </div>
+            <button onclick="doLogin()" id="login-btn"
+                class="w-full bg-primary text-white py-2 rounded font-medium hover:bg-primary-dark transition-colors">
+                Войти
+            </button>
+        </div>
+
+        <!-- === ФОРМА РЕГИСТРАЦИИ === -->
+        <div id="auth-reg" class="hidden px-6 py-4">
+            <div id="reg-error" class="hidden mb-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded p-2"></div>
+            <div id="reg-success" class="hidden mb-3 text-sm text-green-700 bg-green-50 border border-green-200 rounded p-2"></div>
+
+            <p class="text-xs text-gray-500 mb-3">Все поля обязательны, кроме помеченных как необязательные.</p>
+
+            <!-- ФИО -->
+            <div class="mb-2">
+                <label class="block text-xs text-gray-500 mb-1">Фамилия *</label>
+                <input type="text" id="reg-lastname" placeholder="Иванов"
+                    class="border border-gray-300 p-2 rounded w-full text-sm focus:outline-none focus:border-primary">
+            </div>
+            <div class="mb-2">
+                <label class="block text-xs text-gray-500 mb-1">Имя *</label>
+                <input type="text" id="reg-firstname" placeholder="Иван"
+                    class="border border-gray-300 p-2 rounded w-full text-sm focus:outline-none focus:border-primary">
+            </div>
+            <div class="mb-2">
+                <label class="block text-xs text-gray-500 mb-1">Отчество *</label>
+                <input type="text" id="reg-patronymic" placeholder="Иванович"
+                    class="border border-gray-300 p-2 rounded w-full text-sm focus:outline-none focus:border-primary">
+            </div>
+
+            <!-- Компания + ИНН -->
+            <div class="mb-2">
+                <label class="block text-xs text-gray-500 mb-1">ИНН компании <span class="text-gray-400">(необязательно)</span></label>
+                <div class="flex gap-2">
+                    <input type="text" id="reg-inn" placeholder="7700000000" maxlength="12"
+                        class="border border-gray-300 p-2 rounded flex-1 text-sm focus:outline-none focus:border-primary">
+                    <button onclick="doInnLookup()" id="inn-lookup-btn"
+                        class="px-3 py-2 border border-primary text-primary rounded text-sm hover:bg-primary-light whitespace-nowrap">
+                        Найти
+                    </button>
+                </div>
+                <div id="inn-status" class="text-xs mt-1 hidden"></div>
+            </div>
+            <div class="mb-2">
+                <label class="block text-xs text-gray-500 mb-1">Наименование компании *</label>
+                <input type="text" id="reg-company" placeholder="ООО «Название»"
+                    class="border border-gray-300 p-2 rounded w-full text-sm focus:outline-none focus:border-primary">
+            </div>
+
+            <!-- Учётные данные -->
+            <div class="border-t border-gray-100 mt-3 pt-3">
+                <div class="mb-2">
+                    <label class="block text-xs text-gray-500 mb-1">Email <span class="text-gray-400">(необязательно)</span></label>
+                    <input type="email" id="reg-email" placeholder="email@example.com"
+                        class="border border-gray-300 p-2 rounded w-full text-sm focus:outline-none focus:border-primary">
+                </div>
+                <div class="mb-2">
+                    <label class="block text-xs text-gray-500 mb-1">Логин *</label>
+                    <input type="text" id="reg-username" placeholder="username" autocomplete="off"
+                        class="border border-gray-300 p-2 rounded w-full text-sm focus:outline-none focus:border-primary">
+                </div>
+                <div class="mb-2">
+                    <label class="block text-xs text-gray-500 mb-1">Пароль *</label>
+                    <input type="password" id="reg-password" placeholder="Минимум 8 символов"
+                        class="border border-gray-300 p-2 rounded w-full text-sm focus:outline-none focus:border-primary">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-xs text-gray-500 mb-1">Повтор пароля *</label>
+                    <input type="password" id="reg-password2" placeholder="Повтор пароля"
+                        class="border border-gray-300 p-2 rounded w-full text-sm focus:outline-none focus:border-primary">
+                </div>
+            </div>
+
+            <button onclick="doRegister()" id="reg-btn"
+                class="w-full bg-primary text-white py-2 rounded font-medium hover:bg-primary-dark transition-colors">
+                Зарегистрироваться
+            </button>
+            <p class="text-xs text-gray-400 mt-2 text-center">После регистрации вы будете автоматически авторизованы</p>
+        </div>
+    </div>
+</div>
+
 <script>
+// =============================================
+// АВТОРИЗАЦИЯ
+// =============================================
+let csrfToken = '';
+
+function getCsrf() {
+    return document.querySelector('meta[name="csrf-token"]')?.content || '';
+}
+
+async function checkAuth() {
+    try {
+        const resp = await fetch('/api/accounts/me/', { credentials: 'include' });
+        if (resp.ok) {
+            const user = await resp.json();
+            showUserInfo(user);
+        }
+    } catch (e) {}
+}
+
+let currentUser = null;
+
+function showUserInfo(user) {
+    currentUser = user;
+    const name = user.first_name || user.username;
+    document.getElementById('user-display-name').textContent = name;
+    document.getElementById('user-avatar').textContent = name[0].toUpperCase();
+    document.getElementById('user-dropdown-name').textContent = user.username;
+    document.getElementById('btn-login-open').classList.add('hidden');
+    document.getElementById('user-info').classList.remove('hidden');
+    // Показать кнопку "Пользователи" для администраторов
+    if (user.is_staff) {
+        document.getElementById('btn-users-menu').style.display = '';
+    }
+}
+
+function switchAuthTab(tab) {
+    const isLogin = tab === 'login';
+    document.getElementById('auth-login').classList.toggle('hidden', !isLogin);
+    document.getElementById('auth-reg').classList.toggle('hidden', isLogin);
+    document.getElementById('tab-login-btn').className = isLogin
+        ? 'px-4 py-2 text-sm font-medium border-b-2 border-primary text-primary'
+        : 'px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700';
+    document.getElementById('tab-reg-btn').className = !isLogin
+        ? 'px-4 py-2 text-sm font-medium border-b-2 border-primary text-primary'
+        : 'px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700';
+    document.getElementById('modal-title').textContent = isLogin ? 'Вход в систему' : 'Регистрация';
+}
+
+function openLoginModal() {
+    document.getElementById('login-modal').classList.remove('hidden');
+    document.getElementById('login-error').classList.add('hidden');
+    switchAuthTab('login');
+    document.getElementById('login-username').focus();
+}
+
+function closeLoginModal() {
+    document.getElementById('login-modal').classList.add('hidden');
+    document.getElementById('login-username').value = '';
+    document.getElementById('login-password').value = '';
+}
+
+async function doInnLookup() {
+    const inn = document.getElementById('reg-inn').value.trim();
+    const statusEl = document.getElementById('inn-status');
+    const btn = document.getElementById('inn-lookup-btn');
+    if (!inn) { statusEl.textContent = 'Введите ИНН'; statusEl.className = 'text-xs mt-1 text-red-500'; statusEl.classList.remove('hidden'); return; }
+    btn.disabled = true;
+    btn.textContent = '...';
+    statusEl.classList.add('hidden');
+    try {
+        const resp = await fetch(`/api/accounts/inn-lookup/?inn=${encodeURIComponent(inn)}`, { credentials: 'include' });
+        const data = await resp.json();
+        if (resp.ok && data.name) {
+            document.getElementById('reg-company').value = data.full_name || data.name;
+            statusEl.textContent = `Найдено: ${data.name}`;
+            statusEl.className = 'text-xs mt-1 text-green-600';
+        } else {
+            statusEl.textContent = data.error || 'Компания не найдена';
+            statusEl.className = 'text-xs mt-1 text-red-500';
+        }
+        statusEl.classList.remove('hidden');
+    } catch(e) {
+        statusEl.textContent = 'Ошибка запроса';
+        statusEl.className = 'text-xs mt-1 text-red-500';
+        statusEl.classList.remove('hidden');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Найти';
+    }
+}
+
+async function doRegister() {
+    const fields = {
+        last_name:    document.getElementById('reg-lastname').value.trim(),
+        first_name:   document.getElementById('reg-firstname').value.trim(),
+        patronymic:   document.getElementById('reg-patronymic').value.trim(),
+        company_name: document.getElementById('reg-company').value.trim(),
+        inn:          document.getElementById('reg-inn').value.trim(),
+        email:        document.getElementById('reg-email').value.trim(),
+        username:     document.getElementById('reg-username').value.trim(),
+        password:     document.getElementById('reg-password').value,
+        password2:    document.getElementById('reg-password2').value,
+    };
+    const errEl = document.getElementById('reg-error');
+    const sucEl = document.getElementById('reg-success');
+    const btn = document.getElementById('reg-btn');
+    errEl.classList.add('hidden');
+    sucEl.classList.add('hidden');
+
+    const required = [['last_name','Фамилия'],['first_name','Имя'],['patronymic','Отчество'],
+                      ['company_name','Наименование компании'],['username','Логин'],['password','Пароль'],['password2','Повтор пароля']];
+    for (const [f, label] of required) {
+        if (!fields[f]) { errEl.textContent = `Поле «${label}» обязательно`; errEl.classList.remove('hidden'); return; }
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Регистрация...';
+    try {
+        const resp = await fetch('/api/accounts/register/', {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrf() },
+            body: JSON.stringify(fields),
+        });
+        const data = await resp.json();
+        if (resp.ok && data.success) {
+            // Авто-вход после регистрации
+            const loginResp = await fetch('/api/accounts/login/', {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrf() },
+                body: JSON.stringify({ username: fields.username, password: fields.password }),
+            });
+            const loginData = await loginResp.json();
+            closeLoginModal();
+            if (loginResp.ok && loginData.success) showUserInfo(loginData.user);
+        } else {
+            const msgs = Object.entries(data).map(([k,v]) => Array.isArray(v) ? v.join(', ') : String(v)).join('; ');
+            errEl.textContent = msgs || 'Ошибка регистрации';
+            errEl.classList.remove('hidden');
+        }
+    } catch(e) {
+        errEl.textContent = 'Ошибка соединения';
+        errEl.classList.remove('hidden');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Зарегистрироваться';
+    }
+}
+
+function toggleUserDropdown() {
+    document.getElementById('user-dropdown').classList.toggle('hidden');
+}
+
+document.addEventListener('click', e => {
+    if (!e.target.closest('#user-menu-wrapper')) {
+        const dd = document.getElementById('user-dropdown');
+        if (dd) dd.classList.add('hidden');
+    }
+    if (e.target === document.getElementById('login-modal')) closeLoginModal();
+});
+
+async function doLogin() {
+    const username = document.getElementById('login-username').value.trim();
+    const password = document.getElementById('login-password').value;
+    const errEl = document.getElementById('login-error');
+    const btn = document.getElementById('login-btn');
+
+    if (!username || !password) {
+        errEl.textContent = 'Введите логин и пароль';
+        errEl.classList.remove('hidden');
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Вход...';
+    csrfToken = getCsrf();
+
+    try {
+        const resp = await fetch('/api/accounts/login/', {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken,
+            },
+            body: JSON.stringify({ username, password }),
+        });
+        const data = await resp.json();
+        if (resp.ok && data.success) {
+            closeLoginModal();
+            showUserInfo(data.user);
+        } else {
+            errEl.textContent = data.message || 'Неверный логин или пароль';
+            errEl.classList.remove('hidden');
+        }
+    } catch (e) {
+        errEl.textContent = 'Ошибка соединения с сервером';
+        errEl.classList.remove('hidden');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Войти';
+    }
+}
+
+// =============================================
+// УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ
+// =============================================
+async function openUsersModal() {
+    document.getElementById('users-modal').classList.remove('hidden');
+    document.getElementById('user-dropdown').classList.add('hidden');
+    await loadUsers();
+}
+
+function closeUsersModal() {
+    document.getElementById('users-modal').classList.add('hidden');
+    ['new-username','new-email','new-firstname','new-lastname','new-password','new-password2'].forEach(id => {
+        document.getElementById(id).value = '';
+    });
+    document.getElementById('add-user-error').classList.add('hidden');
+    document.getElementById('add-user-success').classList.add('hidden');
+}
+
+async function loadUsers() {
+    const tbody = document.getElementById('users-tbody');
+    try {
+        const resp = await fetch('/api/accounts/users/', { credentials: 'include' });
+        if (!resp.ok) { tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-red-500">Нет прав доступа</td></tr>'; return; }
+        const data = await resp.json();
+        const users = data.results || data;
+        if (!users.length) {
+            tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-gray-400">Нет пользователей</td></tr>';
+            return;
+        }
+        tbody.innerHTML = users.map(u => `
+            <tr class="hover:bg-gray-50">
+                <td class="border border-gray-200 p-2 font-medium">${esc(u.username)}</td>
+                <td class="border border-gray-200 p-2 text-gray-500">${esc(u.email)}</td>
+                <td class="border border-gray-200 p-2">${esc(u.full_name)}</td>
+                <td class="border border-gray-200 p-2 text-center">${u.is_staff ? '✅' : '—'}</td>
+                <td class="border border-gray-200 p-2 text-center">${u.is_active ? '✅' : '❌'}</td>
+            </tr>`).join('');
+    } catch(e) {
+        tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-red-500">Ошибка загрузки</td></tr>';
+    }
+}
+
+async function addUser() {
+    const username = document.getElementById('new-username').value.trim();
+    const email = document.getElementById('new-email').value.trim();
+    const first_name = document.getElementById('new-firstname').value.trim();
+    const last_name = document.getElementById('new-lastname').value.trim();
+    const password = document.getElementById('new-password').value;
+    const password2 = document.getElementById('new-password2').value;
+    const errEl = document.getElementById('add-user-error');
+    const sucEl = document.getElementById('add-user-success');
+    const btn = document.getElementById('add-user-btn');
+
+    errEl.classList.add('hidden');
+    sucEl.classList.add('hidden');
+
+    if (!username || !password || !password2) {
+        errEl.textContent = 'Логин, пароль и повтор пароля обязательны';
+        errEl.classList.remove('hidden');
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Добавление...';
+
+    try {
+        const resp = await fetch('/api/accounts/register/', {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrf() },
+            body: JSON.stringify({ username, email, first_name, last_name, password, password2 }),
+        });
+        const data = await resp.json();
+        if (resp.ok && data.success) {
+            sucEl.textContent = `Пользователь «${username}» успешно создан`;
+            sucEl.classList.remove('hidden');
+            ['new-username','new-email','new-firstname','new-lastname','new-password','new-password2'].forEach(id => {
+                document.getElementById(id).value = '';
+            });
+            await loadUsers();
+        } else {
+            const msgs = Object.entries(data).map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`).join('; ');
+            errEl.textContent = msgs || 'Ошибка создания пользователя';
+            errEl.classList.remove('hidden');
+        }
+    } catch(e) {
+        errEl.textContent = 'Ошибка соединения';
+        errEl.classList.remove('hidden');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Добавить пользователя';
+    }
+}
+
+document.addEventListener('click', e => {
+    if (e.target === document.getElementById('users-modal')) closeUsersModal();
+});
+
+async function doLogout() {
+    csrfToken = getCsrf();
+    try {
+        await fetch('/api/accounts/logout/', {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'X-CSRFToken': csrfToken },
+        });
+    } catch (e) {}
+    currentUser = null;
+    document.getElementById('user-info').classList.add('hidden');
+    document.getElementById('btn-login-open').classList.remove('hidden');
+    document.getElementById('user-dropdown').classList.add('hidden');
+    document.getElementById('btn-users-menu').style.display = 'none';
+}
+
 // =============================================
 // ПЕРЕКЛЮЧЕНИЕ ТАБОВ
 // =============================================
@@ -558,6 +1097,7 @@ function updatePreview() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    checkAuth();
     updatePreview();
     document.querySelectorAll('#tab-new input, #tab-new select, #tab-new textarea').forEach(el => {
         el.addEventListener('change', updatePreview);
