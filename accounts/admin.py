@@ -1,3 +1,6 @@
 from django.contrib import admin
 
-# Register your models here.
+# В accounts/models.py пока нет пользовательских моделей.
+# Стандартные модели User и Group регистрируются автоматически через django.contrib.auth.admin
+# и доступны в /admin/ без дополнительной настройки.
+# При добавлении новых моделей в это приложение регистрируйте их здесь.
