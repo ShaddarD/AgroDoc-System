@@ -6,26 +6,24 @@ cd /d c:\IT\AgroDoc-System
 
 echo.
 echo ==========================================
-echo   AgroDoc — сборка и перезапуск Docker
+echo   AgroDoc — деплой на локальный Docker
 echo ==========================================
 echo.
 
-REM --- опциональный git pull ---
-set /p PULL="Git pull перед сборкой? [y/N]: "
-if /i "%PULL%"=="y" (
+REM --- git pull ---
+echo [1/4] Получаю последние изменения из Git...
+git pull
+if %errorlevel% neq 0 (
     echo.
-    echo [git] Получаю изменения...
-    git pull
-    if %errorlevel% neq 0 (
-        echo ОШИБКА: git pull не удался
-        pause
-        exit /b 1
-    )
-    echo.
+    echo ОШИБКА: git pull не удался.
+    echo Проверь конфликты или подключение к сети.
+    pause
+    exit /b 1
 )
+echo.
 
-REM --- сборка только тех сервисов, которые меняются ---
-echo [1/3] Сборка backend и frontend...
+REM --- сборка backend и frontend ---
+echo [2/4] Сборка контейнеров (backend + frontend)...
 docker compose build agrodb_web agrodb_frontend
 if %errorlevel% neq 0 (
     echo.
@@ -33,30 +31,37 @@ if %errorlevel% neq 0 (
     pause
     exit /b 1
 )
-
 echo.
-echo [2/3] Перезапуск сервисов...
+
+REM --- перезапуск ---
+echo [3/4] Перезапуск сервисов...
 docker compose up -d agrodb_web agrodb_frontend agrodb_nginx
 if %errorlevel% neq 0 (
     echo.
-    echo ОШИБКА: запуск не удался
+    echo ОШИБКА: запуск контейнеров не удался.
     pause
     exit /b 1
 )
-
 echo.
-echo [3/3] Жду старта (5 сек.)...
-timeout /t 5 /nobreak >nul
+
+REM --- ждём старта и показываем статус ---
+echo [4/4] Жду старта (6 сек.)...
+timeout /t 6 /nobreak >nul
 
 echo.
 echo ==========================================
-echo   Готово! http://192.168.1.155
+echo   Статус контейнеров:
+echo ==========================================
+docker compose ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}"
+
+echo.
+echo ==========================================
+echo   Готово!  https://192.168.1.71/
 echo ==========================================
 echo.
 
 start https://192.168.1.71/
 
-echo.
-echo Логи backend (Ctrl+C — выход из логов, контейнер продолжит работу):
+echo Логи backend — Ctrl+C для выхода (контейнер продолжит работать):
 echo.
 docker compose logs -f agrodb_web
