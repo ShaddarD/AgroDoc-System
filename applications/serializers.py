@@ -74,14 +74,43 @@ class ApplicationDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Application
-        fields = '__all__'
+        fields = [
+            'id', 'application_number', 'created_at', 'updated_at', 'created_by', 'created_by_name',
+            'status', 'status_detail',
+            'sender_ru', 'sender_ru_detail',
+            'sender_power_of_attorney', 'sender_power_of_attorney_detail',
+            'sender_en_manual',
+            'receiver', 'receiver_detail',
+            'product', 'product_detail',
+            'product_name_en_manual', 'harvest_year', 'manufacture_date',
+            'purpose', 'purpose_detail',
+            'weight_mt',
+            'packing_type', 'packing_type_detail',
+            'import_country', 'import_country_detail',
+            'discharge_port_ru_manual', 'discharge_port_en_manual',
+            'additional_declaration',
+            'representative', 'representative_detail',
+            'sampling_place', 'sampling_place_detail',
+            'laboratory', 'laboratory_detail',
+            'contract_number_manual', 'contract_date_manual',
+            'planned_inspection_date',
+            'containers', 'certificates', 'regulations',
+        ]
         read_only_fields = ['application_number', 'created_at', 'updated_at', 'created_by']
 
 
 class ApplicationCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Application
-        fields = '__all__'
+        fields = [
+            'id', 'application_number', 'created_at', 'updated_at', 'created_by',
+            'status', 'sender_ru', 'sender_power_of_attorney', 'sender_en_manual',
+            'receiver', 'product', 'product_name_en_manual', 'harvest_year', 'manufacture_date',
+            'purpose', 'weight_mt', 'packing_type', 'import_country',
+            'discharge_port_ru_manual', 'discharge_port_en_manual', 'additional_declaration',
+            'representative', 'sampling_place', 'laboratory',
+            'contract_number_manual', 'contract_date_manual', 'planned_inspection_date',
+        ]
         read_only_fields = ['application_number', 'created_at', 'updated_at', 'created_by']
 
 
@@ -94,7 +123,13 @@ class GeneratedFileSerializer(serializers.ModelSerializer):
 class InspectionRecordSerializer(serializers.ModelSerializer):
     class Meta:
         model = InspectionRecord
-        fields = '__all__'
+        fields = [
+            'id', 'number', 'client', 'manager', 'commodity',
+            'container_count', 'container_type', 'weight', 'pod', 'terminal',
+            'quarantine', 'inspection_date_plan', 'fss_date_plan',
+            'cargo_status', 'documents_status', 'comments',
+            'created_at', 'updated_at', 'created_by',
+        ]
         read_only_fields = ['created_at', 'updated_at', 'created_by']
 
 
