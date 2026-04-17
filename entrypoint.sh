@@ -7,18 +7,21 @@ while ! nc -z postgres 5432; do
 done
 echo "PostgreSQL is ready!"
 
+echo "Creating migrations..."
+python manage.py makemigrations --noinput
+
 echo "Running migrations..."
 python manage.py migrate --noinput
 
-echo "Creating superuser admin/admin123..."
+echo "Creating superuser admin/admin..."
 python manage.py shell -c "
 from django.contrib.auth.models import User
 if not User.objects.filter(username='admin').exists():
-    User.objects.create_superuser('admin', 'admin@agrodoc.local', 'admin123')
+    User.objects.create_superuser('admin', 'admin@agrodoc.local', 'admin')
     print('Superuser admin created')
 else:
     u = User.objects.get(username='admin')
-    u.set_password('admin123')
+    u.set_password('admin')
     u.save()
     print('Superuser admin password updated')
 "
