@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
-  Button, Card, Checkbox, Col, Divider, Form, Input, InputNumber,
+  Button, Card, Checkbox, Col, Form, Input, InputNumber,
   message, Row, Select, Space, Spin, Tag, Tooltip, Typography,
 } from 'antd'
 import {
@@ -12,7 +12,6 @@ import { applicationsApi } from '../../api/applications'
 import { applicantsApi, productsApi, importersApi, inspectionPlacesApi } from '../../api/reference'
 import type { Applicant, Product, Importer, InspectionPlace } from '../../types/reference'
 import type { Application, GeneratedFile } from '../../types/application'
-import { useAuthStore } from '../../store/authStore'
 
 const CERTIFICATE_OPTIONS = [
   { label: 'Сертификат безопасности и качества', value: 'safety_quality' },
@@ -27,8 +26,6 @@ export default function ApplicationFormPage() {
   const navigate = useNavigate()
   const [form] = Form.useForm()
   const isNew = !id || id === 'new'
-  const user = useAuthStore((s) => s.user)
-
   const [loading, setLoading] = useState(!isNew)
   const [saving, setSaving] = useState(false)
   const [generating, setGenerating] = useState(false)
@@ -55,14 +52,7 @@ export default function ApplicationFormPage() {
       setImporters(i.data.filter((x) => x.is_active))
       setInspectionPlaces(ip.data.filter((x) => x.is_active))
 
-      // Авто-выбор заявителя по ИНН залогиненного пользователя
-      if (isNew && user?.inn) {
-        const matched = activeApplicants.find((a) => a.inn === user.inn)
-        if (matched) {
-          form.setFieldValue('applicant', matched.id)
-          fillExporterFields(matched)
-        }
-      }
+
     })
 
     if (!isNew) {
@@ -311,18 +301,14 @@ export default function ApplicationFormPage() {
             <Col xs={24} md={8}><Form.Item label="Количество мест" name="places_count"><InputNumber style={{ width: '100%' }} /></Form.Item></Col>
             <Col xs={24} md={12}><Form.Item label="Тип упаковки" name="packing_type"><Input /></Form.Item></Col>
             <Col xs={24} md={24}>
-              <Form.Item label="Список контейнеров">
-                <Space.Compact style={{ width: '100%' }} direction="vertical">
-                  <Form.Item name="containers_list" noStyle>
-                    <Input.TextArea rows={3} placeholder="Введите номера контейнеров вручную" />
-                  </Form.Item>
-                  <Tooltip title="Структура акта уточняется — функция будет доступна позже">
-                    <Button icon={<UploadOutlined />} disabled style={{ marginTop: 8 }}>
-                      Загрузить из акта
-                    </Button>
-                  </Tooltip>
-                </Space.Compact>
+              <Form.Item label="Список контейнеров" name="containers_list">
+                <Input.TextArea rows={3} placeholder="Введите номера контейнеров вручную" />
               </Form.Item>
+              <Tooltip title="Структура акта уточняется — функция будет доступна позже">
+                <Button icon={<UploadOutlined />} disabled style={{ marginBottom: 16 }}>
+                  Загрузить из акта
+                </Button>
+              </Tooltip>
             </Col>
           </Row>
         </Card>

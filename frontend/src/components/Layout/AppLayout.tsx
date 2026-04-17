@@ -3,8 +3,6 @@ import { Drawer, Grid, Layout } from 'antd'
 import { Outlet } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import AppHeader from './AppHeader'
-import { useAuthStore } from '../../store/authStore'
-import { authApi } from '../../api/auth'
 
 const { Sider, Header, Content } = Layout
 const { useBreakpoint } = Grid
@@ -12,17 +10,9 @@ const { useBreakpoint } = Grid
 export default function AppLayout() {
   const [collapsed, setCollapsed] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const { setUser, user } = useAuthStore()
   const screens = useBreakpoint()
   const isMobile = !screens.md
 
-  useEffect(() => {
-    if (!user) {
-      authApi.me().then((r) => setUser(r.data)).catch(() => {})
-    }
-  }, [])
-
-  // Закрыть drawer при переходе на desktop
   useEffect(() => {
     if (!isMobile) setDrawerOpen(false)
   }, [isMobile])
