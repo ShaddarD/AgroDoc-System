@@ -6,7 +6,6 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import theme from './theme'
 import AppLayout from './components/Layout/AppLayout'
 import PublicPlanLayout from './components/Layout/PublicPlanLayout'
-import LoginPage from './pages/Login/LoginPage'
 import DashboardPage from './pages/Dashboard/DashboardPage'
 import ApplicationsListPage from './pages/Applications/ApplicationsListPage'
 import ApplicationFormPage from './pages/Applications/ApplicationFormPage'
@@ -24,8 +23,6 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<PublicPlanLayout />} />
-          <Route path="/login" element={<LoginPage />} />
-
           <Route element={<AppLayout />}>
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/applications" element={<ApplicationsListPage />} />
