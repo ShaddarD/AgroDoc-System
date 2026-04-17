@@ -3,6 +3,7 @@ import type {
   ApplicationStatus, SenderRu, SenderPowerOfAttorney, Receiver,
   Gost, TrTs, TrTsSampling, Product, ProductPurpose, PackingType,
   Country, Representative, SamplingPlace, Laboratory, Certificate, Regulation,
+  Applicant, Importer, InspectionPlace,
 } from '../types/reference'
 
 const makeRefApi = <T>(path: string) => ({
@@ -29,3 +30,6 @@ export const samplingPlacesApi = makeRefApi<SamplingPlace>('/reference/sampling-
 export const laboratoriesApi = makeRefApi<Laboratory>('/reference/laboratories/')
 export const certificatesApi = makeRefApi<Certificate>('/reference/certificates/')
 export const regulationsApi = makeRefApi<Regulation>('/reference/regulations/')
+export const applicantsApi = makeRefApi<Applicant>('/reference/applicants/')
+export const importersApi = makeRefApi<Importer>('/reference/importers/')
+export const inspectionPlacesApi = makeRefApi<InspectionPlace>('/reference/inspection-places/')
