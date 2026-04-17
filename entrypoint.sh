@@ -7,9 +7,6 @@ while ! nc -z postgres 5432; do
 done
 echo "PostgreSQL is ready!"
 
-echo "Creating migrations..."
-python manage.py makemigrations --noinput
-
 echo "Running migrations..."
 python manage.py migrate --noinput
 
