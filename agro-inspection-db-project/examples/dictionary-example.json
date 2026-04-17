@@ -1,0 +1,9 @@
+{
+  "countries": [
+    {"name_ru": "Пакистан", "name_en": "Pakistan", "iso_code": "PK"}
+  ],
+  "laboratories": [
+    {"name": "ЦОК АПК", "short_name": "ЦОК АПК"},
+    {"name": "ВНИИКР", "short_name": "ВНИИКР"}
+  ]
+}
