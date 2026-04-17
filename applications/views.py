@@ -3,7 +3,12 @@ from django.db.models import Q
 from rest_framework import viewsets, status, generics
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, BasePermission, SAFE_METHODS
+
+
+class ReadOnly(BasePermission):
+    def has_permission(self, request, view):
+        return request.method in SAFE_METHODS
 from django.http import FileResponse
 from django.db import models
 import os
@@ -234,7 +239,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
 
 
 class InspectionRecordViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated | ReadOnly]
     serializer_class = InspectionRecordSerializer
 
     def get_queryset(self):

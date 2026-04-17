@@ -16,7 +16,6 @@ import ProductsPage from './pages/Reference/ProductsPage'
 import ImportersPage from './pages/Reference/ImportersPage'
 import InspectionPlacesPage from './pages/Reference/InspectionPlacesPage'
 import UsersPage from './pages/Admin/UsersPage'
-import AlanDosmotraPage from './pages/AlanDosmotra/AlanDosmotraPage'
 
 dayjs.locale('ru')
 
