@@ -86,8 +86,7 @@ class Application(models.Model):
     def save(self, *args, **kwargs):
         if not self.application_number:
             super().save(*args, **kwargs)
-            count = Application.objects.count()
-            self.application_number = f"APP-{self.created_at.strftime('%Y%m')}-{count:04d}"
+            self.application_number = f"APP-{self.created_at.strftime('%Y%m')}-{str(self.id)[:8].upper()}"
             kwargs['force_insert'] = False
         super().save(*args, **kwargs)
 
@@ -209,10 +208,12 @@ class InspectionRecord(models.Model):
     client = models.CharField('Клиент', max_length=300, blank=True)
     manager = models.CharField('Менеджер', max_length=200, blank=True)
     commodity = models.CharField('Культура', max_length=200, blank=True)
-    container_count = models.CharField('Кол-во', max_length=100, blank=True,
-                                       help_text='Например: 3×40HC')
+    container_count = models.TextField('Номера контейнеров', blank=True,
+                                       help_text='Через запятую, напр.: ABCD1234567, EFGH2345678')
+    container_type = models.CharField('Тип контейнера', max_length=5, blank=True,
+                                      choices=[('x20', 'x20'), ('x40', 'x40')])
     weight = models.DecimalField('Вес (кг)', max_digits=12, decimal_places=2, null=True, blank=True)
-    pod = models.CharField('POD', max_length=200, blank=True, help_text='Порт назначения')
+    pod = models.CharField('POD', max_length=200, blank=True, help_text='Порт назначения, напр.: Циндао, Китай')
     terminal = models.CharField('Терминал', max_length=200, blank=True)
     quarantine = models.CharField('Карантинки', max_length=50, choices=QUARANTINE_CHOICES, blank=True)
     inspection_date_plan = models.DateField('ДОСМОТР (ПЛАН)', null=True, blank=True)
@@ -233,6 +234,99 @@ class InspectionRecord(models.Model):
 
     def __str__(self):
         return f"{self.number} — {self.client} ({self.commodity})"
+
+
+class ShipmentBatch(models.Model):
+    """Реестр затарки — партия контейнеров"""
+
+    STATUS_CHOICES = [
+        ('draft', 'Черновик'),
+        ('ready', 'Готов к привязке'),
+        ('linked', 'Привязан к заявке'),
+        ('closed', 'Закрыт'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    batch_number = models.CharField('Номер реестра', max_length=100, blank=True)
+    batch_date = models.DateField('Дата реестра', null=True, blank=True)
+    destination = models.CharField('Направление/Станция', max_length=200, blank=True)
+    sender_ru = models.ForeignKey(
+        'reference.SenderRu', on_delete=models.PROTECT, null=True, blank=True,
+        verbose_name='Отправитель'
+    )
+    application = models.ForeignKey(
+        'Application', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='shipment_batches', verbose_name='Заявка'
+    )
+    status = models.CharField('Статус', max_length=20, choices=STATUS_CHOICES, default='draft')
+    notes = models.TextField('Примечания', blank=True)
+    created_at = models.DateTimeField('Дата создания', auto_now_add=True)
+    updated_at = models.DateTimeField('Дата обновления', auto_now=True)
+    created_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, verbose_name='Создал'
+    )
+
+    class Meta:
+        db_table = 'shipment_batches'
+        verbose_name = 'Реестр затарки'
+        verbose_name_plural = 'Реестры затарки'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Реестр {self.batch_number or self.id} от {self.batch_date or '—'}"
+
+
+class ContainerShipment(models.Model):
+    """Запись о контейнере в реестре затарки"""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    batch = models.ForeignKey(
+        ShipmentBatch, on_delete=models.CASCADE, related_name='containers',
+        verbose_name='Реестр'
+    )
+    sort_order = models.IntegerField('№ п/п', null=True, blank=True)
+
+    # Контейнер
+    container_number = models.CharField('Номер контейнера', max_length=20)
+    container_type = models.CharField('Тип контейнера', max_length=10, blank=True)  # 40HC, 20DV
+
+    # Весовые данные при затарке
+    tare_weight = models.IntegerField('Тара контейнера (кг)', null=True, blank=True)
+    gross_weight = models.IntegerField('Вес брутто при затарке (кг)', null=True, blank=True)
+    net_weight = models.IntegerField('Вес нетто при затарке (кг)', null=True, blank=True)
+    max_load = models.IntegerField('Макс. нагрузка (кг)', null=True, blank=True)
+
+    # Пломба и вагон
+    seal_number = models.CharField('Номер пломбы', max_length=50, blank=True)
+    wagon_number = models.CharField('Номер вагона', max_length=50, blank=True)
+
+    # Количество и погрузка
+    bags_count = models.IntegerField('Количество мест', null=True, blank=True)
+    loading_date = models.DateField('Дата погрузки', null=True, blank=True)
+
+    # Накладная
+    waybill_number = models.CharField('Номер накладной', max_length=50, blank=True)
+    waybill_date = models.DateField('Дата накладной', null=True, blank=True)
+
+    # Железнодорожные весовые данные
+    railway_gross = models.IntegerField('Ж/д брутто (кг)', null=True, blank=True)
+    railway_tare = models.IntegerField('Ж/д тара (кг)', null=True, blank=True)
+    railway_net = models.IntegerField('Ж/д нетто (кг)', null=True, blank=True)
+    railway_date = models.DateField('Дата ж/д взвешивания', null=True, blank=True)
+
+    # Дополнительно
+    notes = models.TextField('Примечания', blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'container_shipments'
+        verbose_name = 'Контейнер в реестре'
+        verbose_name_plural = 'Контейнеры в реестре'
+        ordering = ['sort_order', 'created_at']
+
+    def __str__(self):
+        return f"{self.container_number} ({self.batch})"
 
 
 class ApplicationHistory(models.Model):
