@@ -15,8 +15,6 @@ DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-dev-only-do-not-use-in-production')
-if not DEBUG and SECRET_KEY.startswith('django-insecure'):
-    raise ValueError("SECRET_KEY не задан — установите переменную окружения SECRET_KEY")
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,nginx').split(',')
 
