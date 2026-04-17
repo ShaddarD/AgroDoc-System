@@ -57,6 +57,7 @@ export default function PlanDosmorovPage() {
     if (filterDateTo) params.date_to = filterDateTo
     inspectionRecordsApi.list(params)
       .then(({ data }) => setRecords(data))
+      .catch(() => {})
       .finally(() => setLoading(false))
   }
 
