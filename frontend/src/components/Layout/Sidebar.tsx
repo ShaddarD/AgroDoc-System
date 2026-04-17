@@ -1,7 +1,6 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Menu } from 'antd'
 import {
-  DashboardOutlined,
   FileTextOutlined,
   TeamOutlined,
   ShopOutlined,
@@ -10,11 +9,9 @@ import {
   UserOutlined,
   TableOutlined,
 } from '@ant-design/icons'
-import { useAuthStore } from '../../store/authStore'
 
 const menuItems = [
   { key: '/', icon: <TableOutlined />, label: 'План досмотров' },
-  { key: '/dashboard', icon: <DashboardOutlined />, label: 'Главная' },
   { key: '/applications', icon: <FileTextOutlined />, label: 'Заявки' },
   {
     key: 'reference',
@@ -27,6 +24,7 @@ const menuItems = [
       { key: '/reference/inspection-places', icon: <EnvironmentOutlined />, label: 'Места досмотра' },
     ],
   },
+  { key: '/admin/users', icon: <UserOutlined />, label: 'Пользователи' },
 ]
 
 interface Props {
@@ -36,14 +34,9 @@ interface Props {
 export default function Sidebar({ onNavigate }: Props) {
   const navigate = useNavigate()
   const location = useLocation()
-  const user = useAuthStore((s) => s.user)
-
-  const items = user?.is_staff
-    ? [...menuItems, { key: '/admin/users', icon: <UserOutlined />, label: 'Пользователи' }]
-    : menuItems
 
   const selectedKey = location.pathname === '/' ? '/' : (
-    items.flatMap((i: any) => i.children || i).find((i: any) => location.pathname.startsWith(i.key) && i.key !== '/')?.key ?? location.pathname
+    menuItems.flatMap((i: any) => i.children || i).find((i: any) => location.pathname.startsWith(i.key) && i.key !== '/')?.key ?? location.pathname
   )
 
   return (
@@ -52,7 +45,7 @@ export default function Sidebar({ onNavigate }: Props) {
       mode="inline"
       selectedKeys={[selectedKey]}
       defaultOpenKeys={['reference']}
-      items={items}
+      items={menuItems}
       onClick={({ key }) => { navigate(key); onNavigate?.() }}
       style={{ border: 'none' }}
     />

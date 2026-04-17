@@ -4,7 +4,6 @@ import dayjs from 'dayjs'
 import 'dayjs/locale/ru'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import theme from './theme'
-import PrivateRoute from './components/PrivateRoute'
 import AppLayout from './components/Layout/AppLayout'
 import PublicPlanLayout from './components/Layout/PublicPlanLayout'
 import LoginPage from './pages/Login/LoginPage'
@@ -24,13 +23,10 @@ export default function App() {
     <ConfigProvider theme={theme} locale={ruRU}>
       <BrowserRouter>
         <Routes>
-          {/* Публичный маршрут — всегда доступен */}
           <Route path="/" element={<PublicPlanLayout />} />
-
           <Route path="/login" element={<LoginPage />} />
 
-          {/* Защищённые маршруты */}
-          <Route element={<PrivateRoute><AppLayout /></PrivateRoute>}>
+          <Route element={<AppLayout />}>
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/applications" element={<ApplicationsListPage />} />
             <Route path="/applications/new" element={<ApplicationFormPage />} />
