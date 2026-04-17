@@ -1,0 +1,26 @@
+erDiagram
+
+    applications }o--|| dict_application_statuses : has_status
+    applications }o--|| dict_senders_ru : has_sender
+    applications }o--o| sender_powers_of_attorney : uses_power
+    applications }o--|| dict_receivers : has_receiver
+    applications }o--|| dict_products : has_product
+    applications }o--|| dict_product_purposes : has_purpose
+    applications }o--|| dict_packing_types : has_packing
+    applications }o--|| dict_countries : imports_to
+    applications }o--|| dict_representatives : has_representative
+    applications }o--|| dict_sampling_places : has_sampling_place
+    applications }o--|| dict_laboratories : has_laboratory
+
+    applications ||--o{ application_containers : contains
+    applications ||--o{ application_certificates : requests
+    applications ||--o{ application_regulations : applies
+
+    application_certificates }o--|| dict_certificates : certificate
+    application_regulations }o--|| dict_regulations : regulation
+
+    dict_products }o--o| dict_gosts : gost
+    dict_products }o--o| dict_tr_ts : tr_ts
+    dict_products }o--o| dict_tr_ts_sampling : sampling_tr_ts
+
+    dict_senders_ru ||--o{ sender_powers_of_attorney : has
