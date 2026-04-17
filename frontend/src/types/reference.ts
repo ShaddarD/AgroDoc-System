@@ -58,10 +58,44 @@ export interface TrTsSampling {
 export interface Product {
   id: string
   name_ru: string
+  name_rus: string
+  name_eng: string
   botanical_name: string
+  tnved_code: string
   gost: string | null
   tr_ts: string | null
   tr_ts_sampling: string | null
+  is_active: boolean
+}
+
+export interface Applicant {
+  id: string
+  name_rus: string
+  name_eng: string
+  legal_address: string
+  actual_address: string
+  inn: string
+  kpp: string
+  ogrn: string
+  contact_person: string
+  phone: string
+  email: string
+  is_active: boolean
+}
+
+export interface Importer {
+  id: string
+  name_eng: string
+  address_eng: string
+  country: string
+  city: string
+  is_active: boolean
+}
+
+export interface InspectionPlace {
+  id: string
+  name: string
+  address: string
   is_active: boolean
 }
 
