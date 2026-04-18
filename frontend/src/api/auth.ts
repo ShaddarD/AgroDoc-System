@@ -1,9 +1,52 @@
 import api from './axios'
-import type { User } from '../types/auth'
+import type { User, LoginResponse } from '../types/auth'
+
+interface RegisterData {
+  login: string
+  password: string
+  password_confirm: string
+  last_name: string
+  first_name: string
+  middle_name?: string
+  email?: string
+  phone?: string
+  job_title?: string
+  counterparty: string
+}
+
+interface CreateUserData {
+  login: string
+  password?: string
+  role_code: string
+  first_name: string
+  last_name: string
+  middle_name?: string
+  email?: string
+  phone?: string
+  job_title?: string
+  counterparty: string
+}
+
+interface AuthSuccess {
+  success: true
+  access: string
+  refresh: string
+  user: User
+}
 
 export const authApi = {
   login: (username: string, password: string) =>
-    api.post<{ access: string; refresh: string; user: User }>('/accounts/login/', { username, password }),
+    api.post<LoginResponse>('/accounts/login/', { username, password }),
+
+  register: (data: RegisterData) =>
+    api.post<AuthSuccess>('/accounts/register/', data),
+
+  setPassword: (uuid: string, password: string) =>
+    api.post<AuthSuccess>('/accounts/set-password/', {
+      uuid,
+      password,
+      password_confirm: password,
+    }),
 
   logout: (refresh: string) =>
     api.post('/accounts/logout/', { refresh }),
@@ -11,18 +54,15 @@ export const authApi = {
   me: () =>
     api.get<User>('/accounts/me/'),
 
-  register: (data: { username: string; password: string; email?: string }) =>
-    api.post<{ access: string; refresh: string; user: User }>('/accounts/register/', data),
-
   getUsers: () =>
     api.get<User[]>('/accounts/users/'),
 
-  createUser: (data: Partial<User> & { password: string }) =>
+  createUser: (data: CreateUserData) =>
     api.post<User>('/accounts/users/', data),
 
-  updateUser: (id: number, data: Partial<User>) =>
-    api.patch<User>(`/accounts/users/${id}/`, data),
+  updateUser: (uuid: string, data: Partial<CreateUserData> & { is_active?: boolean }) =>
+    api.patch<User>(`/accounts/users/${uuid}/`, data),
 
-  deleteUser: (id: number) =>
-    api.delete(`/accounts/users/${id}/`),
+  deleteUser: (uuid: string) =>
+    api.delete(`/accounts/users/${uuid}/`),
 }
