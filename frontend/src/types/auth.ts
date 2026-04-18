@@ -1,20 +1,31 @@
+export interface Counterparty {
+  uuid: string
+  name_ru: string
+  name_en: string | null
+  inn: string | null
+  kpp: string | null
+}
+
 export interface User {
-  id: number
-  username: string
-  email: string
-  first_name: string
+  uuid: string
+  login: string
+  role_code: 'admin' | 'manager' | 'user' | string
   last_name: string
-  full_name: string
-  patronymic: string
-  company_name: string
-  inn: string
-  is_staff: boolean
+  first_name: string
+  middle_name: string | null
+  counterparty: Counterparty | null
+  phone: string | null
+  email: string | null
+  job_title: string | null
+  permissions: string[]
   is_active: boolean
-  is_superuser: boolean
-  date_joined: string
 }
 
 export interface AuthTokens {
   access: string
   refresh: string
 }
+
+export type LoginResponse =
+  | { success: true; access: string; refresh: string; user: User }
+  | { needs_password_setup: true; account_uuid: string }

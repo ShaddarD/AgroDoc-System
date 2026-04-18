@@ -1,118 +1,82 @@
 from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, BasePermission, SAFE_METHODS
 
-from .models import (
-    ApplicationStatus, SenderRu, SenderPowerOfAttorney, Receiver,
-    Gost, TrTs, TrTsSampling, Product, ProductPurpose, PackingType,
-    Country, Representative, SamplingPlace, Laboratory, Certificate, Regulation,
-)
+from accounts.models import Account
+from .models import LookupStatusCode, Terminal, Product, PowerOfAttorney
 from .serializers import (
-    ApplicationStatusSerializer, SenderRuSerializer, SenderPowerOfAttorneySerializer,
-    ReceiverSerializer, GostSerializer, TrTsSerializer, TrTsSamplingSerializer,
-    ProductSerializer, ProductPurposeSerializer, PackingTypeSerializer,
-    CountrySerializer, RepresentativeSerializer, SamplingPlaceSerializer,
-    LaboratorySerializer, CertificateSerializer, RegulationSerializer,
+    LookupStatusCodeSerializer, TerminalSerializer,
+    ProductSerializer, PowerOfAttorneySerializer,
 )
 
 
-class ApplicationStatusViewSet(viewsets.ModelViewSet):
-    queryset = ApplicationStatus.objects.all()
-    serializer_class = ApplicationStatusSerializer
+class CanEditReferences(BasePermission):
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        if request.method in SAFE_METHODS:
+            return True
+        try:
+            account = Account.objects.get(login=request.user.username)
+        except Account.DoesNotExist:
+            return False
+        role = account.role_code
+        if request.method == 'POST':
+            return True
+        if request.method in ('PUT', 'PATCH'):
+            return role in ('manager', 'admin')
+        if request.method == 'DELETE':
+            return role == 'admin'
+        return False
+
+
+class LookupStatusCodeViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = LookupStatusCode.objects.all()
+    serializer_class = LookupStatusCodeSerializer
     permission_classes = [IsAuthenticated]
 
 
-class SenderRuViewSet(viewsets.ModelViewSet):
-    queryset = SenderRu.objects.filter(is_active=True)
-    serializer_class = SenderRuSerializer
-    permission_classes = [IsAuthenticated]
-
-
-class SenderPowerOfAttorneyViewSet(viewsets.ModelViewSet):
-    queryset = SenderPowerOfAttorney.objects.filter(is_active=True)
-    serializer_class = SenderPowerOfAttorneySerializer
-    permission_classes = [IsAuthenticated]
+class TerminalViewSet(viewsets.ModelViewSet):
+    serializer_class = TerminalSerializer
+    permission_classes = [CanEditReferences]
 
     def get_queryset(self):
-        qs = super().get_queryset()
-        sender_id = self.request.query_params.get('sender_id')
-        if sender_id:
-            qs = qs.filter(sender_id=sender_id)
+        qs = Terminal.objects.select_related('owner_counterparty').order_by('terminal_name')
+        search = self.request.query_params.get('search')
+        if search:
+            qs = qs.filter(terminal_name__icontains=search)
+        active_only = self.request.query_params.get('active_only', 'true')
+        if active_only == 'true':
+            qs = qs.filter(is_active=True)
         return qs
 
 
-class ReceiverViewSet(viewsets.ModelViewSet):
-    queryset = Receiver.objects.filter(is_active=True)
-    serializer_class = ReceiverSerializer
-    permission_classes = [IsAuthenticated]
-
-
-class GostViewSet(viewsets.ModelViewSet):
-    queryset = Gost.objects.all()
-    serializer_class = GostSerializer
-    permission_classes = [IsAuthenticated]
-
-
-class TrTsViewSet(viewsets.ModelViewSet):
-    queryset = TrTs.objects.all()
-    serializer_class = TrTsSerializer
-    permission_classes = [IsAuthenticated]
-
-
-class TrTsSamplingViewSet(viewsets.ModelViewSet):
-    queryset = TrTsSampling.objects.all()
-    serializer_class = TrTsSamplingSerializer
-    permission_classes = [IsAuthenticated]
-
-
 class ProductViewSet(viewsets.ModelViewSet):
-    queryset = Product.objects.filter(is_active=True)
     serializer_class = ProductSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [CanEditReferences]
+
+    def get_queryset(self):
+        qs = Product.objects.order_by('name_ru')
+        search = self.request.query_params.get('search')
+        if search:
+            qs = qs.filter(name_ru__icontains=search)
+        active_only = self.request.query_params.get('active_only', 'true')
+        if active_only == 'true':
+            qs = qs.filter(is_active=True)
+        return qs
 
 
-class ProductPurposeViewSet(viewsets.ModelViewSet):
-    queryset = ProductPurpose.objects.all()
-    serializer_class = ProductPurposeSerializer
-    permission_classes = [IsAuthenticated]
+class PowerOfAttorneyViewSet(viewsets.ModelViewSet):
+    serializer_class = PowerOfAttorneySerializer
+    permission_classes = [CanEditReferences]
 
-
-class PackingTypeViewSet(viewsets.ModelViewSet):
-    queryset = PackingType.objects.all()
-    serializer_class = PackingTypeSerializer
-    permission_classes = [IsAuthenticated]
-
-
-class CountryViewSet(viewsets.ModelViewSet):
-    queryset = Country.objects.all()
-    serializer_class = CountrySerializer
-    permission_classes = [IsAuthenticated]
-
-
-class RepresentativeViewSet(viewsets.ModelViewSet):
-    queryset = Representative.objects.all()
-    serializer_class = RepresentativeSerializer
-    permission_classes = [IsAuthenticated]
-
-
-class SamplingPlaceViewSet(viewsets.ModelViewSet):
-    queryset = SamplingPlace.objects.all()
-    serializer_class = SamplingPlaceSerializer
-    permission_classes = [IsAuthenticated]
-
-
-class LaboratoryViewSet(viewsets.ModelViewSet):
-    queryset = Laboratory.objects.all()
-    serializer_class = LaboratorySerializer
-    permission_classes = [IsAuthenticated]
-
-
-class CertificateViewSet(viewsets.ModelViewSet):
-    queryset = Certificate.objects.all()
-    serializer_class = CertificateSerializer
-    permission_classes = [IsAuthenticated]
-
-
-class RegulationViewSet(viewsets.ModelViewSet):
-    queryset = Regulation.objects.all()
-    serializer_class = RegulationSerializer
-    permission_classes = [IsAuthenticated]
+    def get_queryset(self):
+        qs = PowerOfAttorney.objects.select_related(
+            'principal_counterparty', 'attorney_account'
+        ).order_by('-issue_date')
+        active_only = self.request.query_params.get('active_only', 'true')
+        if active_only == 'true':
+            qs = qs.filter(is_active=True)
+        counterparty_uuid = self.request.query_params.get('counterparty_uuid')
+        if counterparty_uuid:
+            qs = qs.filter(principal_counterparty__uuid=counterparty_uuid)
+        return qs

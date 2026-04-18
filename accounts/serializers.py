@@ -1,89 +1,129 @@
-# accounts/serializers.py
-
-from django.contrib.auth.models import User
+from django.contrib.auth.hashers import make_password
 from rest_framework import serializers
-from django.contrib.auth.password_validation import validate_password
-from .models import UserProfile
+from .models import Counterparty, Account, LookupRoleCode
 
 
-class UserProfileSerializer(serializers.ModelSerializer):
+class LookupRoleCodeSerializer(serializers.ModelSerializer):
     class Meta:
-        model = UserProfile
-        fields = ['patronymic', 'company_name', 'inn']
+        model = LookupRoleCode
+        fields = ['role_code', 'display_name_ru', 'display_name_en']
 
 
-class UserSerializer(serializers.ModelSerializer):
-    """Сериализатор для пользователей"""
+class CounterpartySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Counterparty
+        fields = [
+            'uuid', 'name_ru', 'name_en', 'inn', 'kpp', 'ogrn',
+            'legal_address_ru', 'actual_address_ru', 'legal_address_en', 'actual_address_en',
+            'status_code', 'is_active', 'created_at', 'updated_at',
+        ]
+        read_only_fields = ['uuid', 'created_at', 'updated_at']
 
-    full_name = serializers.SerializerMethodField()
-    patronymic = serializers.SerializerMethodField()
-    company_name = serializers.SerializerMethodField()
-    inn = serializers.SerializerMethodField()
+
+class AccountSerializer(serializers.ModelSerializer):
+    counterparty_name = serializers.CharField(source='counterparty.name_ru', read_only=True)
 
     class Meta:
-        model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'full_name',
-                  'patronymic', 'company_name', 'inn',
-                  'is_staff', 'is_active', 'date_joined']
-        read_only_fields = ['id', 'date_joined']
+        model = Account
+        fields = [
+            'uuid', 'login', 'role_code', 'last_name', 'first_name', 'middle_name',
+            'counterparty', 'counterparty_name', 'phone', 'email', 'job_title',
+            'permissions', 'is_active', 'created_at', 'updated_at',
+        ]
+        read_only_fields = ['uuid', 'created_at', 'updated_at']
 
-    def get_full_name(self, obj):
-        return obj.get_full_name() or obj.username
 
-    def get_patronymic(self, obj):
-        return getattr(obj, 'profile', None) and obj.profile.patronymic or ''
+class AccountCreateSerializer(serializers.ModelSerializer):
+    """Admin panel — password is optional; if omitted, user sets it on first login."""
+    password = serializers.CharField(write_only=True, required=False, min_length=6, allow_blank=True)
 
-    def get_company_name(self, obj):
-        return getattr(obj, 'profile', None) and obj.profile.company_name or ''
+    class Meta:
+        model = Account
+        fields = [
+            'login', 'password', 'role_code', 'last_name', 'first_name', 'middle_name',
+            'counterparty', 'phone', 'email', 'job_title',
+        ]
+        extra_kwargs = {
+            'counterparty': {'required': True},
+        }
 
-    def get_inn(self, obj):
-        return getattr(obj, 'profile', None) and obj.profile.inn or ''
+    def create(self, validated_data):
+        password = validated_data.pop('password', None)
+        validated_data['password_hash'] = make_password(password) if password else ''
+        return Account.objects.create(**validated_data)
+
+
+class AccountUpdateSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, required=False, min_length=6, allow_blank=True)
+
+    class Meta:
+        model = Account
+        fields = [
+            'role_code', 'last_name', 'first_name', 'middle_name',
+            'counterparty', 'phone', 'email', 'job_title',
+            'permissions', 'is_active', 'password',
+        ]
+        extra_kwargs = {
+            'counterparty': {'required': True},
+        }
+
+    def update(self, instance, validated_data):
+        password = validated_data.pop('password', None)
+        if password:
+            validated_data['password_hash'] = make_password(password)
+        return super().update(instance, validated_data)
+
+
+class RegisterSerializer(serializers.Serializer):
+    login = serializers.CharField(max_length=100)
+    password = serializers.CharField(min_length=6, write_only=True)
+    password_confirm = serializers.CharField(write_only=True)
+    last_name = serializers.CharField(max_length=100)
+    first_name = serializers.CharField(max_length=100)
+    middle_name = serializers.CharField(max_length=100, required=False, allow_blank=True)
+    email = serializers.EmailField(required=False, allow_blank=True)
+    phone = serializers.CharField(max_length=32, required=False, allow_blank=True)
+    job_title = serializers.CharField(max_length=150, required=False, allow_blank=True)
+    counterparty = serializers.PrimaryKeyRelatedField(queryset=Counterparty.objects.all(), required=True)
+
+    def validate_login(self, value):
+        if Account.objects.filter(login=value).exists():
+            raise serializers.ValidationError('Этот логин уже занят')
+        return value
+
+    def validate_email(self, value):
+        if value and Account.objects.filter(email=value.lower()).exists():
+            raise serializers.ValidationError('Этот email уже используется')
+        return value.lower() if value else value
+
+    def validate(self, attrs):
+        if attrs['password'] != attrs['password_confirm']:
+            raise serializers.ValidationError({'password_confirm': 'Пароли не совпадают'})
+        return attrs
+
+
+class SetPasswordSerializer(serializers.Serializer):
+    uuid = serializers.UUIDField()
+    password = serializers.CharField(min_length=6, write_only=True)
+    password_confirm = serializers.CharField(write_only=True)
+
+    def validate(self, attrs):
+        if attrs['password'] != attrs['password_confirm']:
+            raise serializers.ValidationError({'password_confirm': 'Пароли не совпадают'})
+        return attrs
 
 
 class LoginSerializer(serializers.Serializer):
-    """Сериализатор для входа"""
-
     username = serializers.CharField(required=True)
     password = serializers.CharField(required=True, write_only=True)
 
 
-class RegisterSerializer(serializers.ModelSerializer):
-    """Сериализатор для регистрации"""
-
-    password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
-    password2 = serializers.CharField(write_only=True, required=True)
-    patronymic = serializers.CharField(required=True, max_length=150)
-    company_name = serializers.CharField(required=True, max_length=500)
-    inn = serializers.CharField(required=False, allow_blank=True, max_length=12)
+class CurrentAccountSerializer(serializers.ModelSerializer):
+    counterparty = CounterpartySerializer(read_only=True)
 
     class Meta:
-        model = User
-        fields = ['username', 'password', 'password2', 'email',
-                  'first_name', 'last_name', 'patronymic', 'company_name', 'inn']
-
-    def validate(self, attrs):
-        if attrs['password'] != attrs['password2']:
-            raise serializers.ValidationError({"password": "Пароли не совпадают"})
-        if not attrs.get('first_name', '').strip():
-            raise serializers.ValidationError({"first_name": "Имя обязательно"})
-        if not attrs.get('last_name', '').strip():
-            raise serializers.ValidationError({"last_name": "Фамилия обязательна"})
-        if not attrs.get('patronymic', '').strip():
-            raise serializers.ValidationError({"patronymic": "Отчество обязательно"})
-        if not attrs.get('company_name', '').strip():
-            raise serializers.ValidationError({"company_name": "Наименование компании обязательно"})
-        return attrs
-
-    def create(self, validated_data):
-        patronymic = validated_data.pop('patronymic')
-        company_name = validated_data.pop('company_name')
-        inn = validated_data.pop('inn', '')
-        validated_data.pop('password2')
-        user = User.objects.create_user(**validated_data)
-        UserProfile.objects.create(
-            user=user,
-            patronymic=patronymic,
-            company_name=company_name,
-            inn=inn,
-        )
-        return user
+        model = Account
+        fields = [
+            'uuid', 'login', 'role_code', 'last_name', 'first_name', 'middle_name',
+            'counterparty', 'phone', 'email', 'job_title', 'permissions', 'is_active',
+        ]
