@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Button, Card, DatePicker, Form, Input, InputNumber, Modal,
   Popconfirm, Select, Space, Table, Tag, Tooltip, Typography, message,
@@ -10,8 +10,8 @@ import {
 } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import { inspectionRecordsApi, type InspectionRecord } from '../../api/inspectionRecords'
+import { useAuthStore } from '../../store/authStore'
 
-// ── Справочники статусов ──────────────────────────────────────────
 const QUARANTINE_LABELS: Record<string, { label: string; color: string }> = {
   own: { label: 'Свои', color: 'blue' },
   client: { label: 'Клиентские', color: 'purple' },
@@ -34,8 +34,10 @@ const DOC_STATUS_LABELS: Record<string, { label: string; color: string }> = {
   issued: { label: 'Выданы', color: 'success' },
 }
 
-// ── Компонент ────────────────────────────────────────────────────
 export default function PlanDosmorovPage() {
+  const { user } = useAuthStore()
+  const isAuthenticated = !!user
+
   const [records, setRecords] = useState<InspectionRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [open, setOpen] = useState(false)
@@ -43,7 +45,6 @@ export default function PlanDosmorovPage() {
   const [saving, setSaving] = useState(false)
   const [form] = Form.useForm()
 
-  // фильтры
   const [search, setSearch] = useState('')
   const [filterManager, setFilterManager] = useState('')
   const [filterDateFrom, setFilterDateFrom] = useState<string>('')
@@ -63,7 +64,6 @@ export default function PlanDosmorovPage() {
 
   useEffect(() => { load() }, [filterManager, filterDateFrom, filterDateTo])
 
-  // локальная фильтрация по поиску
   const filtered = search
     ? records.filter((r) =>
         [r.client, r.manager, r.commodity, r.pod, r.terminal, r.number]
@@ -89,7 +89,6 @@ export default function PlanDosmorovPage() {
 
   const onSave = async () => {
     const values = await form.validateFields()
-    // конвертируем dayjs → строку
     if (values.inspection_date_plan) values.inspection_date_plan = values.inspection_date_plan.format('YYYY-MM-DD')
     if (values.fss_date_plan) values.fss_date_plan = values.fss_date_plan.format('YYYY-MM-DD')
     setSaving(true)
@@ -119,7 +118,6 @@ export default function PlanDosmorovPage() {
     }
   }
 
-  // ── Колонки таблицы (14 колонок как в таблице) ─────────────────
   const columns: ColumnsType<InspectionRecord> = [
     {
       title: '№', dataIndex: 'number', key: 'number', width: 80, fixed: 'left',
@@ -197,7 +195,6 @@ export default function PlanDosmorovPage() {
 
   return (
     <>
-      {/* Заголовок */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <div>
           <Typography.Title level={4} style={{ margin: 0, color: '#1a3c6e' }}>
@@ -209,14 +206,14 @@ export default function PlanDosmorovPage() {
         </div>
         <Space>
           <Button icon={<ReloadOutlined />} onClick={load}>Обновить</Button>
-          <Button type="primary" icon={<PlusOutlined />} onClick={openNew}
-            style={{ background: '#2e7d32' }}>
-            Добавить
-          </Button>
+          {isAuthenticated && (
+            <Button type="primary" icon={<PlusOutlined />} onClick={openNew}>
+              Добавить
+            </Button>
+          )}
         </Space>
       </div>
 
-      {/* Фильтры */}
       <Card size="small" style={{ marginBottom: 12 }}>
         <Space wrap>
           <Input
@@ -248,7 +245,6 @@ export default function PlanDosmorovPage() {
         </Space>
       </Card>
 
-      {/* Таблица */}
       <Card bodyStyle={{ padding: 0 }}>
         <Table<InspectionRecord>
           dataSource={filtered}
@@ -264,7 +260,6 @@ export default function PlanDosmorovPage() {
             pageSizeOptions: ['25', '50', '100'],
           }}
           rowClassName={(r) => {
-            // Выделяем просроченные досмотры
             if (r.inspection_date_plan && dayjs(r.inspection_date_plan).isBefore(dayjs(), 'day')
               && r.cargo_status === 'waiting') {
               return 'row-overdue'
@@ -275,7 +270,6 @@ export default function PlanDosmorovPage() {
         />
       </Card>
 
-      {/* Легенда */}
       <div style={{ marginTop: 8, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
         <Typography.Text type="secondary" style={{ fontSize: 12 }}>
           <b>Груз:</b>{' '}
@@ -291,7 +285,6 @@ export default function PlanDosmorovPage() {
         </Typography.Text>
       </div>
 
-      {/* Модальное окно редактирования */}
       <Modal
         title={editingId ? 'Редактировать запись' : 'Новая запись'}
         open={open}

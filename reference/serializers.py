@@ -1,102 +1,56 @@
 from rest_framework import serializers
-from .models import (
-    ApplicationStatus, SenderRu, SenderPowerOfAttorney, Receiver,
-    Gost, TrTs, TrTsSampling, Product, ProductPurpose, PackingType,
-    Country, Representative, SamplingPlace, Laboratory, Certificate, Regulation,
-)
+from .models import LookupStatusCode, Terminal, Product, PowerOfAttorney
 
 
-class ApplicationStatusSerializer(serializers.ModelSerializer):
+class LookupStatusCodeSerializer(serializers.ModelSerializer):
     class Meta:
-        model = ApplicationStatus
-        fields = '__all__'
+        model = LookupStatusCode
+        fields = ['status_code', 'description']
 
 
-class SenderRuSerializer(serializers.ModelSerializer):
+class TerminalSerializer(serializers.ModelSerializer):
+    owner_counterparty_name = serializers.CharField(
+        source='owner_counterparty.name_ru', read_only=True
+    )
+
     class Meta:
-        model = SenderRu
-        fields = '__all__'
-
-
-class SenderPowerOfAttorneySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = SenderPowerOfAttorney
-        fields = '__all__'
-
-
-class ReceiverSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Receiver
-        fields = '__all__'
-
-
-class GostSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Gost
-        fields = '__all__'
-
-
-class TrTsSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = TrTs
-        fields = '__all__'
-
-
-class TrTsSamplingSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = TrTsSampling
-        fields = '__all__'
+        model = Terminal
+        fields = [
+            'uuid', 'terminal_code', 'terminal_name',
+            'owner_counterparty', 'owner_counterparty_name',
+            'address_ru', 'address_en', 'is_active', 'created_at', 'updated_at',
+        ]
+        read_only_fields = ['uuid', 'created_at', 'updated_at']
 
 
 class ProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
-        fields = '__all__'
+        fields = [
+            'uuid', 'product_code', 'hs_code_tnved', 'name_ru', 'name_en',
+            'botanical_name_latin', 'regulatory_documents',
+            'is_active', 'created_at', 'updated_at',
+        ]
+        read_only_fields = ['uuid', 'created_at', 'updated_at']
 
 
-class ProductPurposeSerializer(serializers.ModelSerializer):
+class PowerOfAttorneySerializer(serializers.ModelSerializer):
+    principal_counterparty_name = serializers.CharField(
+        source='principal_counterparty.name_ru', read_only=True
+    )
+    attorney_name = serializers.SerializerMethodField()
+
     class Meta:
-        model = ProductPurpose
-        fields = '__all__'
+        model = PowerOfAttorney
+        fields = [
+            'uuid', 'poa_number', 'issue_date', 'validity_days', 'expiry_date',
+            'principal_counterparty', 'principal_counterparty_name',
+            'attorney_account', 'attorney_name',
+            'status_code', 'is_active', 'created_at', 'updated_at',
+        ]
+        read_only_fields = ['uuid', 'expiry_date', 'created_at', 'updated_at']
 
-
-class PackingTypeSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = PackingType
-        fields = '__all__'
-
-
-class CountrySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Country
-        fields = '__all__'
-
-
-class RepresentativeSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Representative
-        fields = '__all__'
-
-
-class SamplingPlaceSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = SamplingPlace
-        fields = '__all__'
-
-
-class LaboratorySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Laboratory
-        fields = '__all__'
-
-
-class CertificateSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Certificate
-        fields = '__all__'
-
-
-class RegulationSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Regulation
-        fields = '__all__'
+    def get_attorney_name(self, obj):
+        if obj.attorney_account:
+            return obj.attorney_account.full_name
+        return None

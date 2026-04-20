@@ -8,5 +8,4 @@ router.register(r'inspection-records', views.InspectionRecordViewSet, basename='
 
 urlpatterns = [
     path('', include(router.urls)),
-    path('files/<str:pk>/download/', views.FileDownloadView.as_view(), name='file-download'),
 ]

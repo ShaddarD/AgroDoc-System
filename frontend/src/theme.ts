@@ -2,26 +2,28 @@ import type { ThemeConfig } from 'antd'
 
 const theme: ThemeConfig = {
   token: {
-    colorPrimary: '#1a3c6e',
-    colorSuccess: '#2e7d32',
-    colorLink: '#1a3c6e',
-    borderRadius: 6,
+    colorPrimary: '#0E9749',
+    colorSuccess: '#12b057',
+    colorLink: '#0E9749',
+    colorWarning: '#F4B400',
+    borderRadius: 8,
     fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-    colorBgLayout: '#f0f2f5',
+    colorBgLayout: '#F9FAFB',
   },
   components: {
     Layout: {
-      siderBg: '#1a3c6e',
-      triggerBg: '#152f58',
+      siderBg: '#0a6b35',
+      triggerBg: '#0a6b35',
     },
     Menu: {
-      darkItemBg: '#1a3c6e',
-      darkSubMenuItemBg: '#152f58',
-      darkItemSelectedBg: '#2e7d32',
-      darkItemHoverBg: '#234d8a',
+      darkItemBg: '#0a6b35',
+      darkSubMenuItemBg: '#085528',
+      darkItemSelectedBg: '#F4B400',
+      darkItemSelectedColor: '#1F2937',
+      darkItemHoverBg: '#0E9749',
     },
     Button: {
-      colorPrimary: '#1a3c6e',
+      colorPrimary: '#0E9749',
     },
   },
 }

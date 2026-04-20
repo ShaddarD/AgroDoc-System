@@ -3,9 +3,7 @@ import { Form, Input, InputNumber, Select, Switch, Tag } from 'antd'
 import dayjs from 'dayjs'
 import ReferenceTable from '../../components/ReferenceTable'
 import { powersOfAttorneyApi, counterpartiesApi } from '../../api/reference'
-import { authApi } from '../../api/auth'
 import type { PowerOfAttorney, Counterparty } from '../../types/reference'
-import type { User } from '../../types/auth'
 import { useCanEdit, useCanAdd } from '../../hooks/useCanEdit'
 
 const STATUS_OPTIONS = [
@@ -22,17 +20,10 @@ export default function PowersOfAttorneyPage() {
   const canEdit = useCanEdit()
   const canAdd = useCanAdd()
   const [counterpartyOptions, setCounterpartyOptions] = useState<{ value: string; label: string }[]>([])
-  const [accountOptions, setAccountOptions] = useState<{ value: string; label: string }[]>([])
 
   useEffect(() => {
     counterpartiesApi.list({ active_only: 'true' }).then(({ data }) =>
       setCounterpartyOptions(data.map((c: Counterparty) => ({ value: c.uuid, label: c.name_ru })))
-    )
-    authApi.getUsers().then(({ data }) =>
-      setAccountOptions(data.map((u: User) => ({
-        value: u.uuid,
-        label: `${u.last_name} ${u.first_name}`.trim() || u.login,
-      })))
     )
   }, [])
 
@@ -92,11 +83,11 @@ export default function PowersOfAttorneyPage() {
           }
         />
       </Form.Item>
-      <Form.Item label="Поверенный (пользователь)" name="attorney_account">
+      <Form.Item label="Поверенный (контрагент)" name="attorney_account">
         <Select
           showSearch allowClear
-          placeholder="Выберите пользователя"
-          options={accountOptions}
+          placeholder="Выберите контрагента"
+          options={counterpartyOptions}
           filterOption={(input, option) =>
             (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
           }
