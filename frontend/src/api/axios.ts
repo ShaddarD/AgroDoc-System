@@ -5,7 +5,6 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 })
 
-// Attach JWT access token to every request
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('access_token')
   if (token) {
@@ -14,7 +13,6 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-// On 401 — try to refresh; if fail → redirect to login
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -29,14 +27,12 @@ api.interceptors.response.use(
           originalRequest.headers.Authorization = `Bearer ${data.access}`
           return api(originalRequest)
         } catch {
-          // refresh failed — clear tokens and redirect
+          // refresh failed
         }
       }
+      // Clear tokens; user will click "Войти" in the header
       localStorage.removeItem('access_token')
       localStorage.removeItem('refresh_token')
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login'
-      }
     }
     return Promise.reject(error)
   }

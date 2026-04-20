@@ -27,7 +27,7 @@ export default function PublicPlanLayout() {
   const userMenuItems = [
     {
       key: 'username',
-      label: <Typography.Text type="secondary">{user?.username}</Typography.Text>,
+      label: <Typography.Text type="secondary">{user?.login}</Typography.Text>,
       disabled: true,
     },
     { type: 'divider' as const },
@@ -80,7 +80,7 @@ export default function PublicPlanLayout() {
             <Button type="text" style={{ height: 'auto', padding: '4px 8px' }}>
               <Space>
                 <Avatar size="small" icon={<UserOutlined />} style={{ backgroundColor: '#1a3c6e' }} />
-                {!isMobile && <span>{user?.first_name || user?.username}</span>}
+                {!isMobile && <span>{user?.first_name || user?.login}</span>}
               </Space>
             </Button>
           </Dropdown>

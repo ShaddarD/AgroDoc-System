@@ -31,6 +31,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',  # Сообщения
     'django.contrib.staticfiles',  # Статические файлы
     
+    'django.contrib.postgres',
+
     # Сторонние приложения
     'rest_framework',
     'rest_framework.authtoken',
@@ -130,12 +132,17 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-        'rest_framework.authentication.SessionAuthentication',  # для Django Admin
+        'rest_framework.authentication.SessionAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
 }
+
+AUTHENTICATION_BACKENDS = [
+    'accounts.backends.AccountsAuthBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
 
 # JWT settings
 from datetime import timedelta

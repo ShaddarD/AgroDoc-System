@@ -1,16 +1,17 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
-  Button, Card, Checkbox, Col, Form, Input, InputNumber,
+  Button, Card, Checkbox, Col, DatePicker, Form, Input, InputNumber,
   message, Row, Select, Space, Spin, Tag, Tooltip, Typography,
 } from 'antd'
 import {
   SaveOutlined, ArrowLeftOutlined, FileWordOutlined,
   FileExcelOutlined, UploadOutlined,
 } from '@ant-design/icons'
+import dayjs from 'dayjs'
 import { applicationsApi } from '../../api/applications'
-import { applicantsApi, productsApi, importersApi, inspectionPlacesApi } from '../../api/reference'
-import type { Applicant, Product, Importer, InspectionPlace } from '../../types/reference'
+import { counterpartiesApi, productsApi, terminalsApi, powersOfAttorneyApi } from '../../api/reference'
+import type { Counterparty, Product, Terminal, PowerOfAttorney } from '../../types/reference'
 import type { Application, GeneratedFile } from '../../types/application'
 
 const CERTIFICATE_OPTIONS = [
@@ -31,33 +32,37 @@ export default function ApplicationFormPage() {
   const [generating, setGenerating] = useState(false)
   const [files, setFiles] = useState<GeneratedFile[]>([])
 
-  const [applicants, setApplicants] = useState<Applicant[]>([])
+  const [applicants, setApplicants] = useState<Counterparty[]>([])
   const [products, setProducts] = useState<Product[]>([])
-  const [importers, setImporters] = useState<Importer[]>([])
-  const [inspectionPlaces, setInspectionPlaces] = useState<InspectionPlace[]>([])
+  const [importers, setImporters] = useState<Counterparty[]>([])
+  const [inspectionPlaces, setInspectionPlaces] = useState<Terminal[]>([])
+  const [powersOfAttorney, setPowersOfAttorney] = useState<PowerOfAttorney[]>([])
 
   const [appNumber, setAppNumber] = useState('')
   const [status, setStatus] = useState('draft')
 
+  const byInstruction = Form.useWatch('by_instruction', form)
+
   useEffect(() => {
     Promise.all([
-      applicantsApi.list(),
+      counterpartiesApi.list(),
       productsApi.list(),
-      importersApi.list(),
-      inspectionPlacesApi.list(),
-    ]).then(([a, p, i, ip]) => {
-      const activeApplicants = a.data.filter((x) => x.is_active)
-      setApplicants(activeApplicants)
-      setProducts(p.data.filter((x) => x.is_active))
-      setImporters(i.data.filter((x) => x.is_active))
-      setInspectionPlaces(ip.data.filter((x) => x.is_active))
-
-
+      terminalsApi.list(),
+      powersOfAttorneyApi.list({ is_active: 'true' }),
+    ]).then(([a, p, ip, poa]) => {
+      setApplicants(a.data)
+      setImporters(a.data)
+      setProducts(p.data)
+      setInspectionPlaces(ip.data)
+      setPowersOfAttorney(poa.data)
     })
 
     if (!isNew) {
       applicationsApi.get(id!).then(({ data }) => {
-        form.setFieldsValue({ ...data })
+        form.setFieldsValue({
+          ...data,
+          planned_inspection_date: data.planned_inspection_date ? dayjs(data.planned_inspection_date) : null,
+        })
         setAppNumber(data.application_number)
         setStatus(data.status ?? 'draft')
         return applicationsApi.getFiles(id!)
@@ -66,11 +71,11 @@ export default function ApplicationFormPage() {
     }
   }, [id])
 
-  const fillExporterFields = (a: Applicant) => {
+  const fillExporterFields = (a: Counterparty) => {
     form.setFieldsValue({
-      exporter_rus: a.name_rus,
-      exporter_eng: a.name_eng,
-      exporter_address: a.legal_address,
+      exporter_rus: a.name_ru,
+      exporter_eng: a.name_en,
+      exporter_address: a.legal_address_ru,
       exporter_inn: a.inn,
       exporter_kpp: a.kpp,
       exporter_ogrn: a.ogrn,
@@ -78,25 +83,30 @@ export default function ApplicationFormPage() {
   }
 
   const onApplicantChange = (val: string) => {
-    const a = applicants.find((x) => x.id === val)
+    const a = applicants.find((x) => x.uuid === val)
     if (a) fillExporterFields(a)
   }
 
   const onExporterSelectChange = (val: string) => {
-    const a = applicants.find((x) => x.id === val)
+    const a = applicants.find((x) => x.uuid === val)
     if (a) fillExporterFields(a)
   }
 
   const onProductChange = (val: string) => {
-    const p = products.find((x) => x.id === val)
+    const p = products.find((x) => x.uuid === val)
     if (p) {
       form.setFieldsValue({
-        product_rus: p.name_rus || p.name_ru,
-        product_eng: p.name_eng,
-        botanical_name: p.botanical_name,
-        tnved_code: p.tnved_code,
+        product_rus: p.name_ru,
+        product_eng: p.name_en,
+        botanical_name: p.botanical_name_latin,
+        tnved_code: p.hs_code_tnved,
       })
     }
+  }
+
+  const onInspectionPlaceChange = (val: string) => {
+    const t = inspectionPlaces.find((x) => x.uuid === val)
+    if (t) form.setFieldsValue({ inspection_place_custom: t.address_ru })
   }
 
   const onSave = async () => {
@@ -198,23 +208,46 @@ export default function ApplicationFormPage() {
                     (option?.label as string)?.toLowerCase().includes(input.toLowerCase())
                   }
                   onChange={onApplicantChange}
-                  options={applicants.map((a) => ({ value: a.id, label: `${a.name_rus} (ИНН: ${a.inn})` }))}
+                  options={applicants.map((a) => ({ value: a.uuid, label: `${a.name_ru} (ИНН: ${a.inn ?? '—'})` }))}
                 />
               </Form.Item>
             </Col>
             <Col xs={24} md={12}>
-              <Form.Item label="Заявитель (вручную)" name="applicant_custom">
-                <Input placeholder="Если нет в справочнике" />
+              <Form.Item label="Юридический адрес компании Заявитель" name="applicant_custom">
+                <Input />
               </Form.Item>
             </Col>
             <Col xs={24} md={12}>
-              <Form.Item label="Поручение №" name="poruchenie">
+              <Form.Item label="Фактический адрес компании Заявитель" name="applicant_actual_address">
+                <Input />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={12}>
+              <Form.Item label="Контактная информация" name="poruchenie">
                 <Input />
               </Form.Item>
             </Col>
             <Col xs={24} md={12}>
               <Form.Item label="Доверенность №" name="doverennost">
+                <Select
+                  showSearch
+                  placeholder="Выберите доверенность"
+                  allowClear
+                  filterOption={(input, option) =>
+                    (option?.label as string)?.toLowerCase().includes(input.toLowerCase())
+                  }
+                  options={powersOfAttorney.map((p) => ({ value: p.uuid, label: p.poa_number }))}
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={6}>
+              <Form.Item label="№ Договора с ЦОК АПК" name="contract_number_cok">
                 <Input />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={6}>
+              <Form.Item label="Дата договора" name="contract_date_cok">
+                <DatePicker format="DD.MM.YYYY" style={{ width: '100%' }} placeholder="дд.мм.гггг" />
               </Form.Item>
             </Col>
           </Row>
@@ -233,7 +266,7 @@ export default function ApplicationFormPage() {
                     (option?.label as string)?.toLowerCase().includes(input.toLowerCase())
                   }
                   onChange={onExporterSelectChange}
-                  options={applicants.map((a) => ({ value: a.id, label: `${a.inn} — ${a.name_rus}` }))}
+                  options={applicants.map((a) => ({ value: a.uuid, label: `${a.inn ?? '—'} — ${a.name_ru}` }))}
                 />
               </Form.Item>
             </Col>
@@ -243,26 +276,43 @@ export default function ApplicationFormPage() {
             <Col xs={24} md={8}><Form.Item label="ИНН" name="exporter_inn"><Input /></Form.Item></Col>
             <Col xs={24} md={8}><Form.Item label="КПП" name="exporter_kpp"><Input /></Form.Item></Col>
             <Col xs={24} md={8}><Form.Item label="ОГРН" name="exporter_ogrn"><Input /></Form.Item></Col>
+            <Col xs={24} md={24}>
+              <Form.Item name="by_instruction" valuePropName="checked">
+                <Checkbox>По поручению</Checkbox>
+              </Form.Item>
+            </Col>
+            {byInstruction && (
+              <Col xs={24} md={24}>
+                <Form.Item label="Текст поручения" name="instruction_text">
+                  <Input.TextArea rows={2} />
+                </Form.Item>
+              </Col>
+            )}
+            <Col xs={24} md={24}>
+              <Form.Item label="Дата и номер контракта/распоряжения на поставку" name="supply_contract_info">
+                <Input />
+              </Form.Item>
+            </Col>
           </Row>
         </Card>
 
-        {/* ── ИМПОРТЁР ── */}
-        <Card title="Импортёр" style={{ marginBottom: 16 }}>
+        {/* ── ПОЛУЧАТЕЛЬ ── */}
+        <Card title="Получатель" style={{ marginBottom: 16 }}>
           <Row gutter={16}>
             <Col xs={24} md={12}>
-              <Form.Item label="Импортёр из справочника" name="importer">
+              <Form.Item label="Получатель из справочника" name="importer">
                 <Select
                   showSearch
-                  placeholder="Выберите импортёра"
+                  placeholder="Выберите получателя"
                   allowClear
                   filterOption={(input, option) =>
                     (option?.label as string)?.toLowerCase().includes(input.toLowerCase())
                   }
-                  options={importers.map((x) => ({ value: x.id, label: x.name_eng }))}
+                  options={importers.map((x) => ({ value: x.uuid, label: x.name_en ?? x.name_ru }))}
                 />
               </Form.Item>
             </Col>
-            <Col xs={24} md={12}><Form.Item label="Импортёр (вручную)" name="importer_custom"><Input /></Form.Item></Col>
+            <Col xs={24} md={12}><Form.Item label="Получатель (вручную)" name="importer_custom"><Input /></Form.Item></Col>
             <Col xs={24} md={12}><Form.Item label="Наименование (eng)" name="importer_name_eng"><Input /></Form.Item></Col>
             <Col xs={24} md={12}><Form.Item label="Адрес (eng)" name="importer_address_eng"><Input /></Form.Item></Col>
           </Row>
@@ -281,7 +331,7 @@ export default function ApplicationFormPage() {
                     (option?.label as string)?.toLowerCase().includes(input.toLowerCase())
                   }
                   onChange={onProductChange}
-                  options={products.map((x) => ({ value: x.id, label: x.name_rus }))}
+                  options={products.map((x) => ({ value: x.uuid, label: x.name_ru }))}
                 />
               </Form.Item>
             </Col>
@@ -290,16 +340,37 @@ export default function ApplicationFormPage() {
             <Col xs={24} md={12}><Form.Item label="Наименование (eng)" name="product_eng"><Input /></Form.Item></Col>
             <Col xs={24} md={12}><Form.Item label="Ботаническое название" name="botanical_name"><Input /></Form.Item></Col>
             <Col xs={24} md={12}><Form.Item label="Код ТНВЭД" name="tnved_code"><Input /></Form.Item></Col>
+            <Col xs={24}>
+              <Form.Item label="Исследования будут произведены на соответствие документам:" name="research_docs">
+                <Input.TextArea rows={2} />
+              </Form.Item>
+            </Col>
           </Row>
         </Card>
 
         {/* ── ГРУЗ ── */}
         <Card title="Груз и отгрузка" style={{ marginBottom: 16 }}>
           <Row gutter={16}>
-            <Col xs={24} md={8}><Form.Item label="Вес (тонн)" name="weight_tons"><InputNumber style={{ width: '100%' }} step={0.001} /></Form.Item></Col>
-            <Col xs={24} md={8}><Form.Item label="Вес (MT)" name="weight_mt"><InputNumber style={{ width: '100%' }} step={0.001} /></Form.Item></Col>
-            <Col xs={24} md={8}><Form.Item label="Количество мест" name="places_count"><InputNumber style={{ width: '100%' }} /></Form.Item></Col>
-            <Col xs={24} md={12}><Form.Item label="Тип упаковки" name="packing_type"><Input /></Form.Item></Col>
+            <Col xs={24} md={8}>
+              <Form.Item label="Вес (тонн)" name="weight_tons">
+                <InputNumber style={{ width: '100%' }} step={0.001} decimalSeparator="," />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={8}>
+              <Form.Item label="Количество мест" name="places_count">
+                <Input placeholder="Например: 24 или навал" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={8}>
+              <Form.Item label="Тип упаковки" name="packing_type">
+                <Input />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={12}>
+              <Form.Item label="Пункт назначения" name="destination_place">
+                <Input placeholder="HUANGPU, CHINA / ХУАНГПУ, КИТАЙ" />
+              </Form.Item>
+            </Col>
             <Col xs={24} md={24}>
               <Form.Item label="Список контейнеров" name="containers_list">
                 <Input.TextArea rows={3} placeholder="Введите номера контейнеров вручную" />
@@ -325,13 +396,19 @@ export default function ApplicationFormPage() {
                   filterOption={(input, option) =>
                     (option?.label as string)?.toLowerCase().includes(input.toLowerCase())
                   }
-                  options={inspectionPlaces.map((x) => ({ value: x.id, label: x.name }))}
+                  onChange={onInspectionPlaceChange}
+                  options={inspectionPlaces.map((x) => ({ value: x.uuid, label: x.terminal_name }))}
                 />
               </Form.Item>
             </Col>
             <Col xs={24} md={12}>
               <Form.Item label="Адрес" name="inspection_place_custom">
                 <Input />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={12}>
+              <Form.Item label="Предполагаемая дата начала инспекции" name="planned_inspection_date">
+                <DatePicker format="DD.MM.YYYY" style={{ width: '100%' }} placeholder="дд.мм.гггг" />
               </Form.Item>
             </Col>
           </Row>
@@ -355,8 +432,6 @@ export default function ApplicationFormPage() {
         {/* ── ДОПОЛНИТЕЛЬНО ── */}
         <Card title="Дополнительно" style={{ marginBottom: 16 }}>
           <Row gutter={16}>
-            <Col xs={24} md={12}><Form.Item label="Контактный телефон" name="contact_phone"><Input /></Form.Item></Col>
-            <Col xs={24} md={12}><Form.Item label="Контактный email" name="contact_email"><Input type="email" /></Form.Item></Col>
             <Col xs={24}><Form.Item label="Примечания" name="notes"><Input.TextArea rows={3} /></Form.Item></Col>
           </Row>
         </Card>

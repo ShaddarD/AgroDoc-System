@@ -4,28 +4,13 @@ import {
   FileTextOutlined,
   TeamOutlined,
   ShopOutlined,
-  GlobalOutlined,
   EnvironmentOutlined,
   UserOutlined,
   TableOutlined,
+  SafetyCertificateOutlined,
+  SettingOutlined,
 } from '@ant-design/icons'
-
-const menuItems = [
-  { key: '/', icon: <TableOutlined />, label: 'План досмотров' },
-  { key: '/applications', icon: <FileTextOutlined />, label: 'Заявки' },
-  {
-    key: 'reference',
-    icon: <ShopOutlined />,
-    label: 'Справочники',
-    children: [
-      { key: '/reference/applicants', icon: <TeamOutlined />, label: 'Заявители' },
-      { key: '/reference/products', icon: <ShopOutlined />, label: 'Продукция' },
-      { key: '/reference/importers', icon: <GlobalOutlined />, label: 'Импортёры' },
-      { key: '/reference/inspection-places', icon: <EnvironmentOutlined />, label: 'Места досмотра' },
-    ],
-  },
-  { key: '/admin/users', icon: <UserOutlined />, label: 'Пользователи' },
-]
+import { useAuthStore } from '../../store/authStore'
 
 interface Props {
   onNavigate?: () => void
@@ -34,17 +19,52 @@ interface Props {
 export default function Sidebar({ onNavigate }: Props) {
   const navigate = useNavigate()
   const location = useLocation()
+  const { user } = useAuthStore()
+  const isAdmin = user?.role_code === 'admin'
 
-  const selectedKey = location.pathname === '/' ? '/' : (
-    menuItems.flatMap((i: any) => i.children || i).find((i: any) => location.pathname.startsWith(i.key) && i.key !== '/')?.key ?? location.pathname
+  const isAuthenticated = !!user
+
+  const menuItems = [
+    { key: '/', icon: <TableOutlined />, label: 'План досмотров' },
+    ...(isAuthenticated ? [
+      { key: '/applications', icon: <FileTextOutlined />, label: 'Заявки' },
+      {
+        key: 'reference',
+        icon: <ShopOutlined />,
+        label: 'Справочники',
+        children: [
+          { key: '/reference/counterparties', icon: <TeamOutlined />, label: 'Контрагенты' },
+          { key: '/reference/products', icon: <ShopOutlined />, label: 'Продукция' },
+          { key: '/reference/terminals', icon: <EnvironmentOutlined />, label: 'Терминалы' },
+          { key: '/reference/powers-of-attorney', icon: <SafetyCertificateOutlined />, label: 'Доверенности' },
+        ],
+      },
+    ] : []),
+    ...(isAdmin ? [
+      {
+        key: 'admin',
+        icon: <SettingOutlined />,
+        label: 'Администрирование',
+        children: [
+          { key: '/admin/users', icon: <UserOutlined />, label: 'Пользователи' },
+        ],
+      },
+    ] : []),
+  ]
+
+  const allLeafKeys = menuItems.flatMap((i: any) =>
+    i.children ? i.children.flatMap((c: any) => c.children || c) : [i]
   )
+  const selectedKey = location.pathname === '/'
+    ? '/'
+    : allLeafKeys.find((i: any) => location.pathname.startsWith(i.key) && i.key !== '/')?.key ?? location.pathname
 
   return (
     <Menu
       theme="dark"
       mode="inline"
       selectedKeys={[selectedKey]}
-      defaultOpenKeys={['reference']}
+      defaultOpenKeys={['reference', 'admin']}
       items={menuItems}
       onClick={({ key }) => { navigate(key); onNavigate?.() }}
       style={{ border: 'none' }}
