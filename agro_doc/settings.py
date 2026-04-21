@@ -7,11 +7,14 @@ import dj_database_url
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-your-secret-key-here-change-in-production')
+from dotenv import load_dotenv
+load_dotenv(BASE_DIR / '.env')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'True') == 'True'
+
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-dev-only-do-not-use-in-production')
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,nginx').split(',')
 
@@ -28,9 +31,12 @@ INSTALLED_APPS = [
     'django.contrib.messages',  # Сообщения
     'django.contrib.staticfiles',  # Статические файлы
     
+    'django.contrib.postgres',
+
     # Сторонние приложения
     'rest_framework',
     'rest_framework.authtoken',
+    'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     
     # Наши приложения
@@ -126,12 +132,17 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-        'rest_framework.authentication.SessionAuthentication',  # для Django Admin
+        'rest_framework.authentication.SessionAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
 }
+
+AUTHENTICATION_BACKENDS = [
+    'accounts.backends.AccountsAuthBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
 
 # JWT settings
 from datetime import timedelta
@@ -139,7 +150,7 @@ SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(hours=8),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
     'ROTATE_REFRESH_TOKENS': True,
-    'BLACKLIST_AFTER_ROTATION': False,
+    'BLACKLIST_AFTER_ROTATION': True,
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
@@ -155,7 +166,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # DaData API (для поиска компании по ИНН)
 # Получить токен: https://dadata.ru → Профиль → API-ключи
-DADATA_TOKEN = ''  # вставьте свой API-ключ
+DADATA_TOKEN = os.environ.get('DADATA_TOKEN', '')
 
 # Login/Logout URLs
 LOGGING = {
