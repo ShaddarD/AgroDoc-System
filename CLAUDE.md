@@ -11,12 +11,12 @@
 ```
 AgroDoc-System/
 ├── agro_doc/          # Django project root (settings, urls)
-├── accounts/          # Пользователи и JWT-аутентификация
-├── applications/      # Основная бизнес-логика (заявки, досмотры, генерация документов)
-├── reference/         # Справочники (17 моделей)
+├── accounts/          # Пользователи, контрагенты, JWT-аутентификация
+├── applications/      # Заявки + план досмотра (InspectionRecord)
+├── reference/         # Справочники (4 модели)
 ├── frontend/          # React SPA
-├── templates/         # Django-шаблоны (admin, документы)
-├── media/             # Сгенерированные файлы и загрузки
+├── templates/         # Django-шаблоны (admin)
+├── media/             # Загрузки
 ├── agro-inspection-db-project/  # Проектная документация (API + DB specs)
 ├── docker-compose.yml
 ├── Dockerfile
@@ -29,42 +29,67 @@ AgroDoc-System/
 ## Django-приложения
 
 ### accounts/
-- **Модель:** `UserProfile` — расширение User (отчество, компания, ИНН)
-- **Ключевые URLs:**
-  - `POST /api/accounts/login/` — JWT-токены
-  - `POST /api/accounts/logout/` — blacklist refresh
-  - `GET  /api/accounts/me/` — текущий пользователь
-  - `POST /api/accounts/register/` — только admin
-  - `GET  /api/accounts/inn-lookup/` — DaData API (ИНН → данные компании)
-  - `POST /api/accounts/token/refresh/` — обновить access-токен
+**Модели** (все `managed=False`, таблицы в БД управляются вне Django):
+
+| Модель | Таблица | Описание |
+|--------|---------|----------|
+| `LookupRoleCode` | `lookup_role_codes` | Справочник ролей (PK: role_code) |
+| `Counterparty` | `counterparties` | Контрагенты (UUID PK) |
+| `Account` | `accounts` | Пользователи системы (UUID PK, permissions: ArrayField) |
+
+**Ключевые файлы:**
+- `accounts/backends.py` — `AccountsAuthBackend`: аутентификация через таблицу `accounts`, синхронизирует Django User для JWT
+- `accounts/permissions.py` — `CanEditReferences`: единственная копия permission-класса (используется в accounts/ и reference/)
+
+**Ключевые URLs** (`/api/accounts/`):
+- `POST /login/` — JWT-токены
+- `POST /logout/` — blacklist refresh
+- `GET  /me/` — текущий пользователь
+- `POST /register/` — регистрация
+- `POST /set-password/` — установка пароля при первом входе
+- `GET  /inn-lookup/` — DaData API (ИНН → данные компании)
+- `POST /token/refresh/` — обновить access-токен
+- `POST /token/verify/` — проверить токен
+- `GET/POST/PATCH/DELETE /users/` — управление аккаунтами (admin only)
+- `GET/POST/PATCH/DELETE /counterparties/` — управление контрагентами
 
 ### applications/
 **Модели:**
+
 | Модель | Описание |
 |--------|----------|
-| `Application` | Заявка (UUID PK, автономер, статус, FK на 10+ справочников) |
-| `ApplicationContainer` | 1-to-many: номера контейнеров |
-| `ApplicationCertificate` | 1-to-many: требуемые сертификаты |
-| `ApplicationRegulation` | 1-to-many: нормативные документы |
-| `GeneratedFile` | Сгенерированные DOCX/XLSX файлы |
-| `InspectionRecord` | «Алан досмотра» — оперативный учёт отгрузок |
-| `ApplicationHistory` | Журнал изменений (JSONField) |
+| `Application` | Заявка (UUID PK, `managed=False`, таблица `applications`) |
+| `InspectionRecord` | «Алан досмотра» — оперативный трекинг отгрузок (managed Django) |
 
-**Ключевые URLs:**
-- `GET/POST /api/applications/`
-- `GET/PUT/PATCH/DELETE /api/applications/{id}/`
-- `GET/POST /api/applications/{id}/containers/`
-- `GET/POST /api/applications/{id}/certificates/`
-- `GET/POST /api/applications/{id}/regulations/`
-- `POST /api/applications/{id}/generate-documents/` — генерация DOCX/XLSX
-- `GET/POST /api/applications/inspection-records/`
+**Application fields:** uuid, application_number, applicant_counterparty (FK), applicant_account (FK), terminal (FK), product (FK), power_of_attorney (FK), status_code, submitted_at, notes, is_active, created_at, updated_at
+
+**Ключевые URLs** (`/api/`):
+- `GET/POST /applications/`
+- `GET/PUT/PATCH/DELETE /applications/{id}/`
+- `POST /applications/{id}/change-status/` — смена status_code
+- `GET /applications/{id}/files/` — список сгенерированных файлов (stub, возвращает [] до реализации Шаг 2)
+- `GET/POST/PUT/DELETE /inspection-records/`
 
 **Генерация документов:** `applications/document_generator.py` — `DocumentGenerator` (python-docx + openpyxl).
+⚠️ **Не подключён к views.** Это запланированная функциональность (Шаг 2). Класс обращается к полям Application, которых пока нет в модели. Endpoint `generate_documents/` и `downloadFile` во frontend вызывают несуществующий backend — реализация отложена.
 
 ### reference/
-17 справочных моделей: `ApplicationStatus`, `SenderRu`, `SenderPowerOfAttorney`, `Receiver`, `Gost`, `TrTs`, `TrTsSampling`, `Product`, `ProductPurpose`, `PackingType`, `Country`, `Representative`, `SamplingPlace`, `Laboratory`, `Certificate`, `Regulation`.
+**4 модели** (все `managed=False`):
 
-Инициализация: `python manage.py init_data`
+| Модель | Таблица | Описание |
+|--------|---------|----------|
+| `LookupStatusCode` | — | Статусы заявок (read-only) |
+| `Terminal` | — | Терминалы (с owner_counterparty FK) |
+| `Product` | — | Продукция |
+| `PowerOfAttorney` | — | Доверенности |
+
+**Ключевые URLs** (`/api/reference/`):
+- `GET /statuses/` — read-only список статусов
+- `GET/POST/PATCH/DELETE /terminals/`
+- `GET/POST/PATCH/DELETE /products/`
+- `GET/POST/PATCH/DELETE /powers-of-attorney/`
+
+Инициализация данных: `python manage.py init_data`
 
 ---
 
@@ -75,17 +100,16 @@ AgroDoc-System/
 ### Маршруты (App.tsx)
 | Путь | Компонент |
 |------|-----------|
-| `/login` | LoginPage |
-| `/` | AlanDosmotraPage (индекс) |
+| `/` | AlanDosmotraPage (главная — план досмотра) |
 | `/dashboard` | DashboardPage |
 | `/applications` | ApplicationsListPage |
 | `/applications/new` | ApplicationFormPage |
 | `/applications/:id` | ApplicationFormPage (просмотр) |
 | `/applications/:id/edit` | ApplicationFormPage (редактирование) |
-| `/reference/applicants` | ApplicantsPage |
+| `/reference/counterparties` | CounterpartiesPage |
 | `/reference/products` | ProductsPage |
-| `/reference/importers` | ImportersPage |
-| `/reference/inspection-places` | InspectionPlacesPage |
+| `/reference/terminals` | TerminalsPage |
+| `/reference/powers-of-attorney` | PowersOfAttorneyPage |
 | `/admin/users` | UsersPage |
 
 ### Ключевые файлы
@@ -94,10 +118,10 @@ AgroDoc-System/
 | `frontend/src/api/axios.ts` | Axios instance + JWT interceptor + auto-refresh |
 | `frontend/src/store/authStore.ts` | Zustand: токены, user, isAuthenticated → localStorage |
 | `frontend/src/api/auth.ts` | login / logout / me / register / innLookup |
-| `frontend/src/api/applications.ts` | CRUD заявок + контейнеры/сертификаты/документы |
+| `frontend/src/api/applications.ts` | CRUD заявок: list, get, create, update, remove, changeStatus, getFiles, generateDocuments, downloadFile |
 | `frontend/src/api/reference.ts` | Все справочники |
-| `frontend/src/api/inspectionRecords.ts` | CRUD AlDosmotra |
-| `frontend/src/types/application.ts` | Application, Container, Certificate, Regulation, GeneratedFile |
+| `frontend/src/api/inspectionRecords.ts` | CRUD AlanDosmotra |
+| `frontend/src/types/application.ts` | Application, GeneratedFile, PaginatedResponse |
 | `frontend/src/types/reference.ts` | Все справочные типы |
 | `frontend/src/components/Layout/` | AppLayout, AppHeader, Sidebar |
 | `frontend/src/components/ReferenceTable.tsx` | Переиспользуемая таблица справочников |
@@ -198,9 +222,9 @@ requests==2.32.3
 
 **Backend:**
 - `ModelViewSet` + кастомные сериализаторы per-action (`list` vs `detail` vs `create`)
-- Вложенные маршруты для дочерних записей
-- Фильтрация через query params: `status`, `search`, `date_from`, `date_to`
-- `ApplicationHistory` — JSONField audit log
+- Все основные модели — `managed=False` (схема управляется вне Django ORM)
+- `CanEditReferences` — единственная копия в `accounts/permissions.py`, используется и в `reference/`
+- Фильтрация через query params: `status`, `search`, `date_from`, `date_to`, `active_only`
 
 **Frontend:**
 - JWT auto-refresh в Axios interceptor (не выбрасывает пользователя)

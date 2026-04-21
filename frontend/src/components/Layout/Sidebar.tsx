@@ -21,14 +21,14 @@ export default function Sidebar({ onNavigate }: Props) {
   const location = useLocation()
   const { user } = useAuthStore()
   const isAdmin = user?.role_code === 'admin'
-
   const isAuthenticated = !!user
+  const canReference = isAdmin || !!(user?.permissions?.includes('reference'))
 
   const menuItems = [
     { key: '/', icon: <TableOutlined />, label: 'План досмотров' },
     ...(isAuthenticated ? [
       { key: '/applications', icon: <FileTextOutlined />, label: 'Заявки' },
-      {
+      ...(canReference ? [{
         key: 'reference',
         icon: <ShopOutlined />,
         label: 'Справочники',
@@ -38,7 +38,7 @@ export default function Sidebar({ onNavigate }: Props) {
           { key: '/reference/terminals', icon: <EnvironmentOutlined />, label: 'Терминалы' },
           { key: '/reference/powers-of-attorney', icon: <SafetyCertificateOutlined />, label: 'Доверенности' },
         ],
-      },
+      }] : []),
     ] : []),
     ...(isAdmin ? [
       {

@@ -3,11 +3,12 @@ from django.contrib.auth.hashers import make_password
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser, BasePermission, SAFE_METHODS
+from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 
 from .models import Counterparty, Account
+from .permissions import CanEditReferences
 from .serializers import (
     CounterpartySerializer, AccountSerializer, AccountCreateSerializer,
     AccountUpdateSerializer, LoginSerializer, CurrentAccountSerializer,
@@ -16,7 +17,6 @@ from .serializers import (
 
 
 def _issue_tokens(account: Account):
-    """Get or create Django User for account and return JWT tokens + user data."""
     from django.contrib.auth.models import User
     user, _ = User.objects.get_or_create(username=account.login)
     user.first_name = account.first_name
@@ -32,26 +32,6 @@ def _issue_tokens(account: Account):
         'refresh': str(refresh),
         'user': CurrentAccountSerializer(account).data,
     }
-
-
-class CanEditReferences(BasePermission):
-    def has_permission(self, request, view):
-        if not request.user or not request.user.is_authenticated:
-            return False
-        if request.method in SAFE_METHODS:
-            return True
-        try:
-            account = Account.objects.get(login=request.user.username)
-        except Account.DoesNotExist:
-            return False
-        role = account.role_code
-        if request.method == 'POST':
-            return True
-        if request.method in ('PUT', 'PATCH'):
-            return role in ('manager', 'admin')
-        if request.method == 'DELETE':
-            return role == 'admin'
-        return False
 
 
 class CounterpartyViewSet(viewsets.ModelViewSet):
@@ -71,7 +51,7 @@ class CounterpartyViewSet(viewsets.ModelViewSet):
 
 class AccountViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminUser]
-    queryset = Account.objects.all().order_by('last_name', 'first_name')
+    queryset = Account.objects.select_related('counterparty').order_by('last_name', 'first_name')
 
     def get_serializer_class(self):
         if self.action == 'create':

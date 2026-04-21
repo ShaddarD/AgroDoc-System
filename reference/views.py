@@ -1,43 +1,25 @@
 from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticated, BasePermission, SAFE_METHODS
+from rest_framework.permissions import IsAuthenticated
 
-from accounts.models import Account
+from accounts.permissions import CanEditReferences, make_section_permission
 from .models import LookupStatusCode, Terminal, Product, PowerOfAttorney
 from .serializers import (
     LookupStatusCodeSerializer, TerminalSerializer,
     ProductSerializer, PowerOfAttorneySerializer,
 )
 
-
-class CanEditReferences(BasePermission):
-    def has_permission(self, request, view):
-        if not request.user or not request.user.is_authenticated:
-            return False
-        if request.method in SAFE_METHODS:
-            return True
-        try:
-            account = Account.objects.get(login=request.user.username)
-        except Account.DoesNotExist:
-            return False
-        role = account.role_code
-        if request.method == 'POST':
-            return True
-        if request.method in ('PUT', 'PATCH'):
-            return role in ('manager', 'admin')
-        if request.method == 'DELETE':
-            return role == 'admin'
-        return False
+_ReferenceAccess = make_section_permission('reference')
 
 
 class LookupStatusCodeViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = LookupStatusCode.objects.all()
     serializer_class = LookupStatusCodeSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, _ReferenceAccess]
 
 
 class TerminalViewSet(viewsets.ModelViewSet):
     serializer_class = TerminalSerializer
-    permission_classes = [CanEditReferences]
+    permission_classes = [_ReferenceAccess, CanEditReferences]
 
     def get_queryset(self):
         qs = Terminal.objects.select_related('owner_counterparty').order_by('terminal_name')
@@ -52,7 +34,7 @@ class TerminalViewSet(viewsets.ModelViewSet):
 
 class ProductViewSet(viewsets.ModelViewSet):
     serializer_class = ProductSerializer
-    permission_classes = [CanEditReferences]
+    permission_classes = [_ReferenceAccess, CanEditReferences]
 
     def get_queryset(self):
         qs = Product.objects.order_by('name_ru')
@@ -67,7 +49,7 @@ class ProductViewSet(viewsets.ModelViewSet):
 
 class PowerOfAttorneyViewSet(viewsets.ModelViewSet):
     serializer_class = PowerOfAttorneySerializer
-    permission_classes = [CanEditReferences]
+    permission_classes = [_ReferenceAccess, CanEditReferences]
 
     def get_queryset(self):
         qs = PowerOfAttorney.objects.select_related(
