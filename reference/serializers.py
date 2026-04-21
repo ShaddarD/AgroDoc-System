@@ -38,19 +38,16 @@ class PowerOfAttorneySerializer(serializers.ModelSerializer):
     principal_counterparty_name = serializers.CharField(
         source='principal_counterparty.name_ru', read_only=True
     )
-    attorney_name = serializers.SerializerMethodField()
+    attorney_counterparty_name = serializers.CharField(
+        source='attorney_counterparty.name_ru', read_only=True
+    )
 
     class Meta:
         model = PowerOfAttorney
         fields = [
-            'uuid', 'poa_number', 'issue_date', 'validity_days', 'expiry_date',
+            'uuid', 'poa_number', 'issue_date', 'validity_years', 'expiry_date',
             'principal_counterparty', 'principal_counterparty_name',
-            'attorney_account', 'attorney_name',
+            'attorney_counterparty', 'attorney_counterparty_name',
             'status_code', 'is_active', 'created_at', 'updated_at',
         ]
         read_only_fields = ['uuid', 'expiry_date', 'created_at', 'updated_at']
-
-    def get_attorney_name(self, obj):
-        if obj.attorney_account:
-            return obj.attorney_account.full_name
-        return None

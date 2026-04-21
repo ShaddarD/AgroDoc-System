@@ -65,6 +65,10 @@ class ApplicationCreateSerializer(serializers.ModelSerializer):
 
 
 class InspectionRecordSerializer(serializers.ModelSerializer):
+    application_number = serializers.CharField(
+        source='application.application_number', read_only=True
+    )
+
     class Meta:
         model = InspectionRecord
         fields = [
@@ -72,6 +76,7 @@ class InspectionRecordSerializer(serializers.ModelSerializer):
             'container_count', 'container_type', 'weight', 'pod', 'terminal',
             'quarantine', 'inspection_date_plan', 'fss_date_plan',
             'cargo_status', 'documents_status', 'comments',
+            'application', 'application_number',
             'created_at', 'updated_at',
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'application_number', 'created_at', 'updated_at']

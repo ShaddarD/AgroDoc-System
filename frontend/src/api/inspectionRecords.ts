@@ -16,6 +16,8 @@ export interface InspectionRecord {
   cargo_status: string
   documents_status: string
   comments: string
+  application?: string | null
+  application_number?: string | null
   created_at?: string
   updated_at?: string
 }

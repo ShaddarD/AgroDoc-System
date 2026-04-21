@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   Button, Card, Checkbox, Col, DatePicker, Form, Input, InputNumber,
@@ -6,7 +6,7 @@ import {
 } from 'antd'
 import {
   SaveOutlined, ArrowLeftOutlined, FileWordOutlined,
-  FileExcelOutlined, UploadOutlined,
+  FileExcelOutlined, UploadOutlined, PrinterOutlined,
 } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import { applicationsApi } from '../../api/applications'
@@ -22,6 +22,14 @@ const CERTIFICATE_OPTIONS = [
   { label: 'Сертификат ГМО', value: 'gmo' },
 ]
 
+const STATUS_MAP: Record<string, { label: string; color: string }> = {
+  draft: { label: 'Черновик', color: 'default' },
+  filled: { label: 'Заполнено', color: 'blue' },
+  ready_to_print: { label: 'Готово к печати', color: 'green' },
+  completed: { label: 'Завершена', color: 'success' },
+  archived: { label: 'Архив', color: 'orange' },
+}
+
 export default function ApplicationFormPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -31,6 +39,7 @@ export default function ApplicationFormPage() {
   const [saving, setSaving] = useState(false)
   const [generating, setGenerating] = useState(false)
   const [files, setFiles] = useState<GeneratedFile[]>([])
+  const [lastSaved, setLastSaved] = useState<Date | null>(null)
 
   const [applicants, setApplicants] = useState<Counterparty[]>([])
   const [products, setProducts] = useState<Product[]>([])
@@ -41,6 +50,7 @@ export default function ApplicationFormPage() {
   const [appNumber, setAppNumber] = useState('')
   const [status, setStatus] = useState('draft')
 
+  const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const byInstruction = Form.useWatch('by_instruction', form)
 
   useEffect(() => {
@@ -69,7 +79,22 @@ export default function ApplicationFormPage() {
       }).then(({ data }) => setFiles(data))
         .finally(() => setLoading(false))
     }
+
+    return () => {
+      if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
+    }
   }, [id])
+
+  const scheduleAutoSave = () => {
+    if (isNew || status !== 'draft') return
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
+    autoSaveTimer.current = setTimeout(async () => {
+      try {
+        await applicationsApi.update(id!, form.getFieldsValue())
+        setLastSaved(new Date())
+      } catch { /* silent autosave */ }
+    }, 2000)
+  }
 
   const fillExporterFields = (a: Counterparty) => {
     form.setFieldsValue({
@@ -110,6 +135,7 @@ export default function ApplicationFormPage() {
   }
 
   const onSave = async () => {
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
     try {
       const values = await form.validateFields()
       setSaving(true)
@@ -119,6 +145,7 @@ export default function ApplicationFormPage() {
         navigate(`/applications/${data.id}/edit`)
       } else {
         await applicationsApi.update(id!, values)
+        setLastSaved(new Date())
         message.success('Заявка сохранена')
       }
     } catch (e: any) {
@@ -126,6 +153,15 @@ export default function ApplicationFormPage() {
       message.error('Ошибка сохранения')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const onChangeStatus = async (newStatus: string) => {
+    try {
+      await applicationsApi.changeStatus(id!, newStatus)
+      setStatus(newStatus)
+    } catch {
+      message.error('Ошибка смены статуса')
     }
   }
 
@@ -155,23 +191,32 @@ export default function ApplicationFormPage() {
   if (loading) return <Spin size="large" style={{ display: 'block', textAlign: 'center', marginTop: 80 }} />
 
   const title = isNew ? 'Новая заявка' : `Заявка № ${appNumber}`
+  const statusInfo = STATUS_MAP[status] ?? { label: status, color: 'default' }
 
   return (
     <>
       {/* ── ШАПКА ── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
-        <Space wrap>
-          <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/applications')} />
+        <Space wrap align="center">
+          <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/applications')} className="no-print" />
           <Typography.Title level={4} style={{ margin: 0 }}>{title}</Typography.Title>
-          {status && (
-            <Tag color={status === 'completed' ? 'success' : status === 'archived' ? 'orange' : 'default'}>
-              {status === 'draft' ? 'Черновик' : status === 'completed' ? 'Завершена' : 'Архив'}
-            </Tag>
+          {status && <Tag color={statusInfo.color}>{statusInfo.label}</Tag>}
+          {!isNew && status === 'draft' && (
+            <Button size="small" className="no-print" onClick={() => onChangeStatus('filled')}>Заполнено</Button>
+          )}
+          {!isNew && status === 'filled' && (
+            <Button size="small" type="primary" className="no-print" onClick={() => onChangeStatus('ready_to_print')}>Готово к печати</Button>
+          )}
+          {lastSaved && (
+            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+              Сохранено в {dayjs(lastSaved).format('HH:mm')}
+            </Typography.Text>
           )}
         </Space>
-        <Space wrap>
+        <Space wrap className="no-print">
           {!isNew && (
             <>
+              <Button icon={<PrinterOutlined />} onClick={() => window.print()}>Предпросмотр</Button>
               <Button icon={<FileWordOutlined />} loading={generating} onClick={() => onGenerate(['cokz'])}>СОКЗ</Button>
               <Button icon={<FileExcelOutlined />} loading={generating} onClick={() => onGenerate(['fito1', 'fito2'])}>ФИТО</Button>
               <Button icon={<FileExcelOutlined />} loading={generating} onClick={() => onGenerate(['act'])}>АКТ</Button>
@@ -182,7 +227,7 @@ export default function ApplicationFormPage() {
         </Space>
       </div>
 
-      <Form form={form} layout="vertical" size="middle">
+      <Form form={form} layout="vertical" size="middle" onValuesChange={scheduleAutoSave}>
 
         {/* ── НОМЕР АКТА ── */}
         <Card style={{ marginBottom: 16 }}>
@@ -416,17 +461,31 @@ export default function ApplicationFormPage() {
 
         {/* ── МЕЖДУНАРОДНЫЕ СЕРТИФИКАТЫ ── */}
         <Card title="Международные сертификаты" style={{ marginBottom: 16 }}>
-          <Form.Item name="documents_needed">
-            <Checkbox.Group>
-              <Row gutter={[8, 12]}>
-                {CERTIFICATE_OPTIONS.map((opt) => (
-                  <Col xs={24} sm={12} key={opt.value}>
-                    <Checkbox value={opt.value}>{opt.label}</Checkbox>
-                  </Col>
-                ))}
-              </Row>
-            </Checkbox.Group>
-          </Form.Item>
+          {CERTIFICATE_OPTIONS.map((opt) => (
+            <Row key={opt.value} align="middle" gutter={8} style={{ marginBottom: 10 }}>
+              <Col flex="auto">
+                <Form.Item name={`cert_${opt.value}_checked`} valuePropName="checked" noStyle>
+                  <Checkbox>{opt.label}</Checkbox>
+                </Form.Item>
+              </Col>
+              <Col>
+                <Space>
+                  <Typography.Text type="secondary" style={{ fontSize: 13 }}>Копий:</Typography.Text>
+                  <Form.Item noStyle dependencies={[`cert_${opt.value}_checked`]}>
+                    {({ getFieldValue }) => (
+                      <Form.Item name={`cert_${opt.value}_copies`} noStyle>
+                        <InputNumber
+                          min={0}
+                          disabled={!getFieldValue(`cert_${opt.value}_checked`)}
+                          style={{ width: 70 }}
+                        />
+                      </Form.Item>
+                    )}
+                  </Form.Item>
+                </Space>
+              </Col>
+            </Row>
+          ))}
         </Card>
 
         {/* ── ДОПОЛНИТЕЛЬНО ── */}

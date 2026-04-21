@@ -22,8 +22,8 @@ export default function PowersOfAttorneyPage() {
   const [counterpartyOptions, setCounterpartyOptions] = useState<{ value: string; label: string }[]>([])
 
   useEffect(() => {
-    counterpartiesApi.list({ active_only: 'true' }).then(({ data }) =>
-      setCounterpartyOptions(data.map((c: Counterparty) => ({ value: c.uuid, label: c.name_ru })))
+    counterpartiesApi.list({ active_only: 'false' }).then(({ data }) =>
+      setCounterpartyOptions((data as Counterparty[]).map(c => ({ value: c.uuid, label: c.name_ru })))
     )
   }, [])
 
@@ -46,7 +46,7 @@ export default function PowersOfAttorneyPage() {
       ellipsis: true, render: (v: string | null) => v || '—',
     },
     {
-      title: 'Поверенный', dataIndex: 'attorney_name', key: 'attorney_name',
+      title: 'Поверенный', dataIndex: 'attorney_counterparty_name', key: 'attorney_counterparty_name',
       width: 160, render: (v: string | null) => v || '—',
     },
     {
@@ -66,8 +66,8 @@ export default function PowersOfAttorneyPage() {
         </Form.Item>
       </div>
       <div style={{ display: 'flex', gap: 8 }}>
-        <Form.Item label="Срок действия (дней)" name="validity_days" rules={[{ required: true, message: 'Обязательно' }]} style={{ flex: 1 }}>
-          <InputNumber min={1} style={{ width: '100%' }} />
+        <Form.Item label="Срок действия (лет)" name="validity_years" rules={[{ required: true, message: 'Обязательно' }]} style={{ flex: 1 }}>
+          <InputNumber min={1} max={99} style={{ width: '100%' }} />
         </Form.Item>
         <Form.Item label="Статус" name="status_code" initialValue="active" style={{ flex: 1 }}>
           <Select options={STATUS_OPTIONS} />
@@ -83,7 +83,7 @@ export default function PowersOfAttorneyPage() {
           }
         />
       </Form.Item>
-      <Form.Item label="Поверенный (контрагент)" name="attorney_account">
+      <Form.Item label="Поверенный (контрагент)" name="attorney_counterparty">
         <Select
           showSearch allowClear
           placeholder="Выберите контрагента"

@@ -10,6 +10,7 @@ import {
 } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import { inspectionRecordsApi, type InspectionRecord } from '../../api/inspectionRecords'
+import { applicationsApi } from '../../api/applications'
 import { useAuthStore } from '../../store/authStore'
 
 const QUARANTINE_LABELS: Record<string, { label: string; color: string }> = {
@@ -44,6 +45,17 @@ export default function PlanDosmorovPage() {
   const [editingId, setEditingId] = useState<number | null>(null)
   const [saving, setSaving] = useState(false)
   const [form] = Form.useForm()
+  const [applicationOptions, setApplicationOptions] = useState<{ value: string; label: string }[]>([])
+
+  useEffect(() => {
+    applicationsApi.list().then(({ data }) => {
+      setApplicationOptions(
+        data.results
+          .filter((a) => a.application_number)
+          .map((a) => ({ value: a.id, label: a.application_number }))
+      )
+    }).catch(() => {})
+  }, [])
 
   const [search, setSearch] = useState('')
   const [filterManager, setFilterManager] = useState('')
@@ -122,6 +134,10 @@ export default function PlanDosmorovPage() {
     {
       title: '№', dataIndex: 'number', key: 'number', width: 80, fixed: 'left',
       render: (v) => <b>{v}</b>,
+    },
+    {
+      title: 'Заявка', dataIndex: 'application_number', key: 'application_number', width: 120,
+      render: (v) => v ? <Tag color="geekblue">{v}</Tag> : '—',
     },
     { title: 'Клиент', dataIndex: 'client', key: 'client', width: 160, ellipsis: true },
     { title: 'Менеджер', dataIndex: 'manager', key: 'manager', width: 120, ellipsis: true },
@@ -366,6 +382,16 @@ export default function PlanDosmorovPage() {
               ]} />
             </Form.Item>
           </Space>
+
+          <Form.Item label="Связанная заявка" name="application">
+            <Select
+              allowClear
+              showSearch
+              placeholder="Выберите заявку (необязательно)"
+              optionFilterProp="label"
+              options={applicationOptions}
+            />
+          </Form.Item>
 
           <Form.Item label="Комментарии" name="comments">
             <Input.TextArea rows={3} />

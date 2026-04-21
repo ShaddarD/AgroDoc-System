@@ -54,12 +54,12 @@ export interface PowerOfAttorney {
   uuid: string
   poa_number: string
   issue_date: string
-  validity_days: number
+  validity_years: number
   expiry_date: string | null
   principal_counterparty: string | null
   principal_counterparty_name: string | null
-  attorney_account: string | null
-  attorney_name: string | null
+  attorney_counterparty: string | null
+  attorney_counterparty_name: string | null
   status_code: string
   is_active: boolean
   created_at?: string

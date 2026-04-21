@@ -1,0 +1,29 @@
+:root {
+  --green-primary: #2E7D32;
+  --green-secondary: #4CAF50;
+  --green-dark: #1B5E20;
+
+  --yellow-accent: #F4B400;
+  --yellow-light: #FFD54F;
+
+  --bg-main: #F9FAFB;
+  --white: #FFFFFF;
+  --dark: #1F2937;
+  --gray: #6B7280;
+}
+
+body {
+  background: var(--bg-main);
+  color: var(--dark);
+}
+
+.btn-primary {
+  background: var(--yellow-accent);
+  color: white;
+  padding: 10px 16px;
+  border-radius: 8px;
+}
+
+.btn-primary:hover {
+  background: var(--yellow-light);
+}

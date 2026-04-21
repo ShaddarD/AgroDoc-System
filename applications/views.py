@@ -1,4 +1,5 @@
 from rest_framework import viewsets, status
+from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 
@@ -54,6 +55,21 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         instance.save(update_fields=['is_active'])
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+    @action(detail=True, methods=['post'], url_path='change-status')
+    def change_status(self, request, pk=None):
+        instance = self.get_object()
+        new_status = request.data.get('status')
+        if not new_status:
+            return Response({'detail': 'Укажите status'}, status=status.HTTP_400_BAD_REQUEST)
+        instance.status_code = new_status
+        instance.save(update_fields=['status_code'])
+        return Response(ApplicationDetailSerializer(instance).data)
+
+    @action(detail=True, methods=['get'])
+    def files(self, request, pk=None):
+        # Returns generated document files; populated when DocumentGenerator is implemented
+        return Response([])
+
 
 class InspectionRecordViewSet(viewsets.ModelViewSet):
     serializer_class = InspectionRecordSerializer
@@ -72,5 +88,11 @@ class InspectionRecordViewSet(viewsets.ModelViewSet):
         return qs
 
     def perform_create(self, serializer):
-        user = self.request.user if self.request.user.is_authenticated else None
-        serializer.save(created_by=user)
+        account = None
+        if self.request.user.is_authenticated:
+            from accounts.models import Account
+            try:
+                account = Account.objects.get(login=self.request.user.username)
+            except Account.DoesNotExist:
+                pass
+        serializer.save(created_by=account)

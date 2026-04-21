@@ -1,6 +1,5 @@
 import uuid
 from django.db import models
-from django.contrib.auth.models import User
 
 
 class Application(models.Model):
@@ -87,7 +86,20 @@ class InspectionRecord(models.Model):
     comments = models.TextField('Комментарии', blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    application = models.ForeignKey(
+        'Application',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        db_column='application_uuid',
+        related_name='inspection_records',
+    )
+    created_by = models.ForeignKey(
+        'accounts.Account',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        db_column='created_by_account_uuid',
+        to_field='uuid',
+    )
 
     class Meta:
         verbose_name = 'Запись досмотра'
