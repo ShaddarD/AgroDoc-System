@@ -46,7 +46,7 @@ export default function Sidebar({ onNavigate }: Props) {
         icon: <SettingOutlined />,
         label: 'Администрирование',
         children: [
-          { key: '/admin/users', icon: <UserOutlined />, label: 'Пользователи' },
+          { key: '/manage/users', icon: <UserOutlined />, label: 'Пользователи' },
         ],
       },
     ] : []),
