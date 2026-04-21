@@ -67,7 +67,7 @@ export default function App() {
             <Route path="/reference/products" element={<ProductsPage />} />
             <Route path="/reference/terminals" element={<TerminalsPage />} />
             <Route path="/reference/powers-of-attorney" element={<PowersOfAttorneyPage />} />
-            <Route path="/admin/users" element={<UsersPage />} />
+            <Route path="/manage/users" element={<UsersPage />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />
