@@ -4,6 +4,15 @@ import { MenuOutlined, LogoutOutlined, UserOutlined } from '@ant-design/icons'
 import { useAuthStore } from '../../store/authStore'
 import { authApi } from '../../api/auth'
 import LoginModal from '../Auth/LoginModal'
+import type { User } from '../../types/auth'
+
+function formatShortName(user: User): string {
+  if (!user.last_name) return user.login
+  const parts = [user.last_name]
+  if (user.first_name) parts.push(`${user.first_name[0]}.`)
+  if (user.middle_name) parts.push(`${user.middle_name[0]}.`)
+  return parts.join(' ')
+}
 
 interface Props {
   onMenuToggle?: () => void
@@ -79,9 +88,12 @@ export default function AppHeader({ onMenuToggle }: Props) {
                 >
                   {initials}
                 </Avatar>
-                <span style={{ fontSize: 14 }}>
-                  {user.first_name || user.login}
-                </span>
+                <div style={{ textAlign: 'left', lineHeight: 1.2 }}>
+                  <div style={{ fontSize: 14 }}>{formatShortName(user)}</div>
+                  {user.counterparty?.name_ru && (
+                    <div style={{ fontSize: 11, color: '#888' }}>{user.counterparty.name_ru}</div>
+                  )}
+                </div>
               </Space>
             </Button>
           </Dropdown>

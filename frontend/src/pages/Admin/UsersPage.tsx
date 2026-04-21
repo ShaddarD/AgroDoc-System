@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Button, Card, Form, Input, Modal, Popconfirm, Select, Space, Switch, Table, Tag, Typography, message } from 'antd'
+import { Button, Card, Checkbox, Form, Input, Modal, Popconfirm, Select, Space, Switch, Table, Tag, Typography, message } from 'antd'
 import { PlusOutlined, EditOutlined, DeleteOutlined, KeyOutlined } from '@ant-design/icons'
 import { authApi } from '../../api/auth'
 import { counterpartiesApi } from '../../api/reference'
@@ -10,6 +10,13 @@ const ROLE_OPTIONS = [
   { value: 'user',    label: 'Пользователь' },
   { value: 'manager', label: 'Менеджер' },
   { value: 'admin',   label: 'Администратор' },
+]
+
+const SECTION_OPTIONS = [
+  { label: 'Дашборд',              value: 'dashboard' },
+  { label: 'Справочники',          value: 'reference' },
+  { label: 'Реестр сертификатов',  value: 'certificate_registry' },
+  { label: 'Экспорт',              value: 'export' },
 ]
 
 const ROLE_COLOR: Record<string, string> = {
@@ -67,6 +74,7 @@ export default function UsersPage() {
       job_title: u.job_title,
       role_code: u.role_code,
       counterparty: u.counterparty?.uuid ?? null,
+      permissions: u.permissions || [],
       is_active: u.is_active,
     })
     setCounterpartySearch('')
@@ -238,6 +246,9 @@ export default function UsersPage() {
           </div>
           <Form.Item label="Роль" name="role_code" rules={[{ required: true }]} initialValue="user">
             <Select options={ROLE_OPTIONS} />
+          </Form.Item>
+          <Form.Item label="Доступ к разделам" name="permissions" initialValue={[]}>
+            <Checkbox.Group options={SECTION_OPTIONS} style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }} />
           </Form.Item>
           {editing && (
             <Form.Item label="Активен" name="is_active" valuePropName="checked">

@@ -1,0 +1,56 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: agrodoc_web
+    ports:
+      - "8000:8000"
+    environment:
+      DEBUG: "True"
+      SECRET_KEY: "dev-secret-key"
+      DATABASE_URL: "postgresql://postgres:12345@db:5432/agrodoc"
+      POSTGRES_DB: "agrodoc"
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "12345"
+      POSTGRES_HOST: "db"
+      POSTGRES_PORT: "5432"
+      ALLOWED_HOSTS: "localhost,127.0.0.1"
+      CORS_ALLOWED_ORIGINS: "http://localhost:3000,http://localhost:5173,http://127.0.0.1:5173"
+      CSRF_TRUSTED_ORIGINS: "http://localhost,http://127.0.0.1"
+    depends_on:
+      - db
+    volumes:
+      - .:/app
+    restart: unless-stopped
+    develop:
+      watch:
+        - action: sync
+          path: .
+          target: /app
+          ignore:
+            - .git/
+            - .venv/
+            - venv/
+            - __pycache__/
+            - staticfiles/
+            - media/
+            - node_modules/
+        - action: rebuild
+          path: requirements.txt
+
+  db:
+    image: postgres:16
+    container_name: agrodoc_db
+    environment:
+      POSTGRES_DB: "agrodoc"
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "12345"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  postgres_dev_data:

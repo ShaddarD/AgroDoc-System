@@ -1,12 +1,6 @@
 from django.contrib.auth.hashers import make_password
 from rest_framework import serializers
-from .models import Counterparty, Account, LookupRoleCode
-
-
-class LookupRoleCodeSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = LookupRoleCode
-        fields = ['role_code', 'display_name_ru', 'display_name_en']
+from .models import Counterparty, Account
 
 
 class CounterpartySerializer(serializers.ModelSerializer):
@@ -21,6 +15,7 @@ class CounterpartySerializer(serializers.ModelSerializer):
 
 
 class AccountSerializer(serializers.ModelSerializer):
+    counterparty = CounterpartySerializer(read_only=True)
     counterparty_name = serializers.CharField(source='counterparty.name_ru', read_only=True)
 
     class Meta:
