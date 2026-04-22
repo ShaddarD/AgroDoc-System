@@ -9,3 +9,7 @@ openpyxl==3.1.2
 psycopg2-binary==2.9.9
 dj-database-url==2.1.0
 requests==2.32.3
+pytest
+pytest-django
+pytest-cov
+factory-boy

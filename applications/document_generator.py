@@ -1,6 +1,5 @@
 import os
 import datetime
-import tempfile
 
 from django.conf import settings
 
@@ -13,38 +12,57 @@ class DocumentGenerator:
         self.output_dir = os.path.join(settings.MEDIA_ROOT, 'generated_docs')
 
     def _sender_name(self, app):
-        return app.sender_ru.name if app.sender_ru else ''
+        # ⚠️ TEMP: sender_ru model not defined; using applicant_counterparty as fallback
+        counterparty = getattr(app, 'applicant_counterparty', None)
+        return counterparty.name_ru if counterparty else (getattr(app, 'sender_en_manual', '') or '')
 
     def _sender_inn(self, app):
-        return app.sender_ru.inn if app.sender_ru else ''
+        # ⚠️ TEMP: sender_ru model not defined; using applicant_counterparty
+        counterparty = getattr(app, 'applicant_counterparty', None)
+        return counterparty.inn if counterparty else ''
 
     def _sender_kpp(self, app):
-        return app.sender_ru.kpp if app.sender_ru else ''
+        # ⚠️ TEMP: sender_ru model not defined; using applicant_counterparty
+        counterparty = getattr(app, 'applicant_counterparty', None)
+        return counterparty.kpp if counterparty else ''
 
     def _sender_ogrn(self, app):
-        return app.sender_ru.ogrn if app.sender_ru else ''
+        # ⚠️ TEMP: sender_ru model not defined; using applicant_counterparty
+        counterparty = getattr(app, 'applicant_counterparty', None)
+        return counterparty.ogrn if counterparty else ''
 
     def _receiver_name(self, app):
-        return app.receiver.name_en if app.receiver else ''
+        # ⚠️ TEMP: receiver model not defined; returns empty string
+        # TODO: implement after Receiver/Sender models are added (task: #XXX)
+        return ''
 
     def _receiver_address(self, app):
-        return app.receiver.actual_address if app.receiver else ''
+        # ⚠️ TEMP: receiver model not defined; returns empty string
+        # TODO: implement after Receiver/Sender models are added (task: #XXX)
+        return ''
 
     def _product_name_ru(self, app):
-        return app.product.name_ru if app.product else ''
+        product = getattr(app, 'product', None)
+        return product.name_ru if product else ''
 
     def _product_botanical(self, app):
-        return app.product.botanical_name if app.product else ''
+        product = getattr(app, 'product', None)
+        return getattr(product, 'botanical_name_latin', '') if product else ''
 
     def _packing_type(self, app):
-        return app.packing_type.name if app.packing_type else ''
+        # ⚠️ TEMP: packing_type model not defined; returns empty string
+        # TODO: implement after PackingType model is added (task: #XXX)
+        return ''
 
     def _sampling_place(self, app):
-        return app.sampling_place.name if app.sampling_place else ''
+        # ⚠️ TEMP: sampling_place model not defined; returns empty string
+        # TODO: implement after SamplingPlace model is added (task: #XXX)
+        return ''
 
     def _containers_str(self, app):
-        containers = app.containers.values_list('container_number', flat=True)
-        return ', '.join(containers)
+        # ⚠️ TEMP: containers relation not defined; returns empty string
+        # TODO: implement via dedicated containers table (task: #XXX)
+        return ''
 
     def _output_path(self, app, filename):
         date_str = app.created_at.strftime('%Y/%m/%d')
@@ -98,7 +116,6 @@ class DocumentGenerator:
 
         files = []
 
-        # Лист 1 — Заявление на выдачу фитосертификата
         wb1 = Workbook()
         ws1 = wb1.active
         ws1.title = 'Фито (1)'
@@ -135,7 +152,6 @@ class DocumentGenerator:
         wb1.save(path1)
         files.append({'name': filename1, 'path': path1, 'type': 'fito1'})
 
-        # Лист 2 — Заявление на отбор проб
         wb2 = Workbook()
         ws2 = wb2.active
         ws2.title = 'Фито (2)'
@@ -153,7 +169,6 @@ class DocumentGenerator:
         wb2.save(path2)
         files.append({'name': filename2, 'path': path2, 'type': 'fito2'})
 
-        # Акт досмотра
         wb3 = Workbook()
         ws3 = wb3.active
         ws3.title = 'Акт досмотра'
